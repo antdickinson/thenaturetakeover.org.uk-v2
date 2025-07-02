@@ -1,0 +1,130 @@
+doctype html
+head
+  meta(charset='utf-8')
+  title The Nature Take Over | Interactive Projection App
+  meta(name='description' content='The Nature Take Over Festival Interactive Web App')
+  meta(name='viewport' content='width=device-width, initial-scale=1')
+  link(rel='apple-touch-icon' href='icon.png')
+  link(rel='preconnect' href='https://fonts.googleapis.com')
+  link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin='')
+  link(href='https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap' rel='stylesheet')
+  link(rel='stylesheet' href='/static/css/main.css')
+header#home--header.home--header.home--banner
+  .container
+    .row.justify-content-center
+      .image--box.logo--box.col-11.col-lg-12(class='[ ]')
+        img(src='/static/images/logo-white.svg' alt='The Nature Take Over Logo')
+      .text--box.text--blocks.flexbox.justify-content-center.col-9.col-sm-7.col-md-10(class='[ ]')
+        p.text--colour-bg.bg--orange
+          span An
+          |  Interactive
+        p.text--colour-bg.bg--yellow Projection
+      // ADD URL INTO THIS LINK
+      a.btn.main--btn(href='/customer' role='link') Play Now
+      .flower-border
+        // <img src="./images/flower-border-sm.png" alt="" />
+    // /.row
+  // /.container
+// \#home--header
+main#page(role='main')
+  #banner--link
+    .container
+      .row.justify-content-center
+        .text--box.col-10.col-md-8.col-lg-6(class='[ ]')
+          p visit the interactive page now
+          // ADD URL INTO THIS LINK
+          a.btn.main--btn(href='/customer' role='link') Play Now
+      // /.row
+    // /.container
+  // \#banner--link
+  section#how-to-play.container
+    .row.justify-content-center.flex-column.align-items-center
+      header.how-to-header.col-11.col-sm-9.col-md-8.col-lg-6(class='[ ]')
+        h1.h3 How does it work?
+        p
+          | Once you have clicked on the
+          span.bold PLAY NOW
+          |  button you&rsquo;ll be able to
+          |               control you&rsquo;re very own insect that will be projected onto the
+          |               building in front of you.
+      .text--box.instructions.instruct_1.col-11.col-sm-9.col-md-8.col-lg-10(class='[ ]')
+        .text--box_inside.col-lg-7
+          p.h3
+            | 1. Touch the screen of your mobile device or click on the screen
+          p
+            | On the interactive page touch your screen if using a mobile
+            | device such as a phone or tablet, if you&rsquo;re on a device with a
+            | mouse just click anywhere on the screen.&#x3;
+          p
+            | You&rsquo;ll should now see your insect appear on the screen and the
+            | building!
+        .image--box.col-lg-5
+          img(src='/static/images/phone-example-1.png' alt='Instruction 1 a hand and the screen')
+      // \. instruct_1
+      .text--box.instructions.instruct_2.col-11.col-sm-9.col-md-8.col-lg-10(class='[ ]')
+        .text--box_inside.col-lg-7
+          p.h3 2. Move your finger or cursor around the screen!
+          p
+            | Now you will see your insect character move around on both the
+            | screen and on the buiding in front of you!
+        .imge--box.col-lg-5
+          img(src='/static/images/phone-example-2.png' alt='Instruction 2 a hand, scren and the building')
+      // \. instruct_2
+    // /.row
+  // /.container
+  aside#banner-try-it-now
+    section.container
+      .row.flex-column.align-items-center
+        img.mantis.image--transformed(src='/static/images/mantis.png' alt='praying-mantis')
+        .col-8(class='[ ]')
+          p Try it now, just click the button!
+        // /.col
+        // ADD URL INTO THIS LINK
+        a.btn.main--btn(href='/customer' role='button') Play Now
+        img.flowers.image--transformed(src='/static/images/flowers-bees-2.png' alt='flowers')
+      // /.row
+    // /.container
+  // \#banner-try-it-now
+  .container
+    section#about-the-project.row.justify-content-center
+      .text--box.col-11.col-sm-10.col-md-7.col-lg-8(class='[ ]')
+        h4.h3.section--heading Developing the project
+        p
+          | A big part of developing the work has been about appreciating bees
+          | and other pollinators. Over recent years there has been a decline
+          | in solitary bees like the garden bumble bee.
+        p
+          | Pollinating insects are vital for sustaining life as we know it on
+          | our planet. Please look after, appreciate and respect all insects!
+      .image--box.col-12.col-md-6.col-lg-5.bees-flowers(class='[ ]')
+        img(src='/static/images/bees-flowers.png' alt='Bees Pollinating Flowers')
+      .text--box.col-11.col-sm-10.col-md-7.col-lg-7.outbound--links(class='[ ]')
+        h4.h4 Have a look at these cool links
+        p.h5.sub--title
+          | If you want to read more and do something you can start by looking
+          | at the websites here:
+        ul.external--links.listed--bullet
+          li
+            p Buglife Website saving the planet!
+            a.btn--website(href='https://www.buglife.org.uk/' role='link' target='_blank') bug life
+          li
+            p RHS Website - Advice
+            a.btn--website(href='https://www.rhs.org.uk/advice/profile?pid=528' role='link' target='_blank') RHS
+          li
+            p RHS Website - Pollinators
+            a.btn--website(href='https://www.rhs.org.uk/advice/profile?pid=528' role='link' target='_blank') RHS
+          li
+            p Wildlife Trust - Nectar Cafe
+            a.btn--website(href='https://www.wildlifetrusts.org/actions/best-plants-bees-and-pollinators' role='link' target='_blank') Wildlife Trust
+footer#main__footer.block
+  .container
+    section.row
+    .row.footer__copyright
+      .col-11.col-lg-6
+        p.footer__note.copyright Copyright 2021
+      .col-11.col-lg-6
+        p.footer__note
+          | SITE MADE WITH
+          span.heart-beat &#x2764;&#xFE0F;
+          |               BY AL.JOHNSON CREATIVE
+

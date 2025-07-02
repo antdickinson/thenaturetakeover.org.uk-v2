@@ -1,0 +1,51 @@
+
+---
+
+### ✅ `.gitignore`
+
+```gitignore
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+pids
+*.swp
+
+# System
+.DS_Store
+Thumbs.db
+
+# Build
+build/
+dist/
+
+# IDE/editor folders
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Public assets
+public/uploads/
+public/tmp/
+
+# Socket.io generated files (if any)
+*.sock
+
+# Image frame directory (optional, if regenerated or too large)
+image-directory/*
+!image-directory/.gitkeep

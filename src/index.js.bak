@@ -1,0 +1,73 @@
+const http = require('http')
+const express = require('express')
+const socketio = require('socket.io')
+const fs = require('fs')
+const path = require('path')
+
+// Get env
+const vars = require('./configs/vars')
+
+// Server creator
+const serverCreator = require('./configs/server')
+
+// Socket Controller
+const socket = require('./configs/socket')
+
+const app = express()
+
+
+
+// Static resources
+app.use('/static', express.static('./public'))
+
+// Set templating engine
+app.set('view engine', 'pug')
+
+// Set default view folder
+app.set('views', './views')
+
+// Set ssl enabled (in case of proxy)
+app.enable('trust proxy', function(ip) {
+  console.log(ip)
+  return true
+})
+
+const { server, port } = serverCreator(app)
+const io = socketio(server)
+
+// Attach controller
+socket(io)
+
+// render landing page
+app.get('/', async (req, res, next) => {
+  let serverUrl = req.protocol + '://' + req.get('host')
+  const filePath = path.resolve(__dirname, "../views/index.html")
+  res.sendFile(filePath);
+})
+
+// render Customer page
+app.get('/customer', async (req, res, next) => {
+  let serverUrl = req.protocol + '://' + req.get('host')
+  return res.render('customer.pug', { serverUrl })
+})
+
+// render admin page
+app.get('/admin', async (req, res, next) => {
+  let serverUrl = req.protocol + '://' + req.get('host')
+  return res.render('admin.pug', { serverUrl })
+})
+
+// Send image file
+app.get('/image/:imageName', async (req, res, next) => {
+  const filePath = path.resolve(__dirname, "../images/"+req.params.imageName)
+  if(fs.existsSync(filePath)) {
+    return res.sendFile(filePath)
+  }
+  else {
+    return res.send("WRONG FILE")
+  }
+})
+
+server.listen(port, () => {
+  console.log(`Server is up on port ${port}!`)
+})

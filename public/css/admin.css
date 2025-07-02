@@ -1,0 +1,45 @@
+/*
+ some reset styles for the body tag
+*/
+body {
+  margin: 0;
+  padding:0;
+  background-color: #000000;
+}
+
+/*
+  html element created to be the canvas area that the insect is operating in
+  - if you update these dimensions you must also update the dimensions in 'customer.pug' to let the app work out the relative positioning of the insect
+  - the border acts as a visual clue for aligning it up on the surface it's being projected onto
+  - remove the border if it causes a problem visually
+  - keep the background transparent so it doesnt cover up the animation
+*/
+.container {
+  width: 3160px;  /*3840 */
+  height: 1200px;  /* 768 */
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 2px solid yellow; 
+}
+
+/* 
+  html element that is created to store the image file that the is shown in the projection
+  - a fixed width, this can be altered
+  - alter this if you want the projected user's insect to appear larger or smaller
+*/
+.imgCont {
+  width: 160px;
+  height: auto!important;
+  cursor: move;
+}
+
+/* 
+  this references the html element 
+  - the image file needs to be 100% so that it fills it's container (fluid size) 
+*/
+img {
+  width: 100%;
+  height: auto;
+}
+
+

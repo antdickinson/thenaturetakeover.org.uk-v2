@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Socket Public</title>
+  <link rel="stylesheet" href="../public/css/client.css" />
+</head>
+<script src="../public/js/socket.io.js" charset="utf-8"></script>
+<script src="../public/js/p5.js" charset="utf-8"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+  // Set initial / global values
+  const socketUrl = "";
+  let socket;
+  var x = 0;
+  var y = 0;
+  var easing = 0.01;
+  var angle1 = 0.0;
+  var segLength = 50;
+  var targetX;
+  var targetY;
+  let imgLoaded = false;
+  let img;
+  let imgUrl;
+  let canvas;
+  var idleTime = 0;
+  // Code for idle user
+  $(document).ready(function () {
+    // Increment the idle time counter every minute.
+    var idleInterval = setInterval(timerIncrement, 1000); // run function `timerIncrement` every 1 second
+    // Zero the idle timer on mouse movement.
+    $(this).mousemove(function (e) {
+      // If user moved mouse, make idle time to 0
+      idleTime = 0;
+    });
+    $(this).keypress(function (e) {
+      // If user pressed any key, make idle time to 0
+      idleTime = 0;
+    });
+  });
+
+  function timerIncrement() {
+    idleTime = idleTime + 1;
+    if (idleTime == 60) {
+      // 60 seconds exceed
+      socket.emit("inactive");
+    }
+  }
+
+  function setup() {
+    canvas = createCanvas(windowWidth, windowHeight, [P2D]);
+    canvas.style("display", "block");
+    background(0);
+    targetX = windowWidth / 2;
+    targetY = windowHeight / 2;
+    socket = io.connect(socketUrl);
+    socket.on("connect", function () {
+      socket.emit("client");
+    });
+    socket.on("image", function (d) {
+      img = loadImage(d.image, function() {
+        imgUrl = d.image;
+        targetX = windowWidth / 2;
+        targetY = windowHeight / 2;
+        loop(); // Start drawing
+      });
+    });
+    noLoop(); // Only draw when ready
+  }
+
+  function draw() {
+    if (img) {
+      insect(targetX, targetY);
+    }
+  }
+
+  function mouseDragged() {
+    var data = {
+      x: mouseX,
+      y: mouseY,
+    };
+    socket.emit("mouse", data);
+    targetX = data.x;
+    targetY = data.y;
+    // insect(targetX, targetY); // Now handled by draw()
+    let angle = atan2(data.y - height / 2, data.x - width / 2);
+    console.log("sending: " + data.x + ", " + data.y);
+    console.log(angle);
+  }
+
+  function insect(targetX1, targetY1) {
+    stroke(255, 0, 0);
+    fill(0, 0, 0);
+    imageMode(CENTER);
+    background(0);
+    targetX = targetX1;
+    targetY = targetY1;
+    // var targetX = mouseX;
+    // var targetY = mouseY;
+    var dx = targetX - x;
+    var dy = targetY - y;
+    angle1 = atan2(dy, dx);
+    x += dx * easing;
+    y += dy * easing;
+    x = mouseX - cos(angle1) * segLength;
+    y = mouseY - sin(angle1) * segLength;
+    //segment(x, y, angle1 + radians(90));
+    segment(x, y, angle1);
+    // just to demonstrate whats being saved in the vars
+    function segment(varx, vary, vara) {
+      push();
+      translate(varx, vary);
+      rotate(vara + radians(90));
+
+      // compensate for image size - minus half image width and height from position variables - or half radians 90 degree
+      varx = varx - 45;
+      vary = vary - 45;
+      // Emit updated co-ordinates to the socket so the relative position on the admin screen is correct
+      let screenX = (varx / windowWidth) * 3840;
+      let screenY = (vary / windowHeight) * 768;
+
+      //- let screenX = (varx / windowWidth) * 2300;
+      //- let screenY = (vary / windowHeight) * 1025;
+      console.log(`New Co-ordinates sending : X = ${screenX}, Y = ${screenY}`);
+      socket.emit("imageChange", {
+        x: screenX,
+        y: screenY,
+        rads: vara + radians(90),
+        img: imgUrl,
+      });
+      //- socket.emit('imageChange', { x: varx, y: vary, rads: vara + radians(90), img: imgUrl })
+      //image(img, 0, 0,20,20);
+
+      // the image of the insect
+      image(img, 0, 0, 90, 90);
+      // END the insect
+
+      pop();
+    }
+  }
+</script>
+
+<body>
+  <div id="splash-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s ease; opacity: 1;">
+    <img src="../public/images/logo-white.svg" alt="Logo" id="splash-logo" style="width: 180px; max-width: 60vw; margin-bottom: 32px;" />
+    <div id="splash-instructions" style="color: #fff; text-align: center; font-family: 'Arial Rounded MT Bold', Arial, sans-serif; background: rgba(0,0,0,0.2); padding: 24px 32px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.12);">
+      <h2 style="margin: 0 0 12px 0; font-size: 2rem;">Welcome!</h2>
+      <p style="margin: 0; font-size: 1.2rem;">Use your mouse or finger to move your insect.<br>Have fun exploring!</p>
+    </div>
+  </div>
+  <script>
+    // Splash screen fade out after 5 seconds
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        const splash = document.getElementById('splash-overlay');
+        if (splash) {
+          splash.style.opacity = '0';
+          splash.style.pointerEvents = 'none';
+          setTimeout(() => splash.style.display = 'none', 1000);
+        }
+      }, 5000);
+    });
+  </script>
+</body>

@@ -1,0 +1,1188 @@
+doctype html
+head
+	meta(charset='utf-8')
+	title Socket Admin - Advanced Physics View
+	link(rel='stylesheet' href='/static/css/admin.css')
+body
+	#admin-canvas(style='width:100vw;height:100vh;position:fixed;top:0;left:0;z-index:0;')
+	#main.container
+	#admin-info(style='position: fixed; top: 20px; right: 20px; color: white; font-family: Arial; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px; z-index: 1000; backdrop-filter: blur(10px);')
+		h3(style='margin: 0 0 10px 0; font-size: 18px; color: #00ff88;') 🐛 Advanced Admin View
+		p(style='margin: 0 0 5px 0; font-size: 14px;') <span id="insect-count">0</span> insects with full physics
+		p(style='margin: 0 0 5px 0; font-size: 12px; color: #88ff88;') 3D Legs • Realistic Movement • Sprite Animation
+		div(style='margin-top: 10px; font-size: 11px; color: #aaa;')
+			div Physics: <span id="physics-status">Active</span>
+			div Sprites: <span id="sprite-status">Loading</span>
+			div 3D Legs: <span id="legs-status">Enabled</span>
+			div Sync: <span id="sync-status">Mirroring Customer</span>
+
+script(src='/static/js/socket.io.js' charset='utf-8')
+script(src='/static/js/p5.js' charset='utf-8')
+script(src='https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js')
+script(type='text/javascript').
+	// ===== ADVANCED ADMIN INSECT VIEWER - FULL PHYSICS REPLICATION =====
+	const socket = io();
+	let insects = {};
+	let globalAnimationFrame = 0;
+
+	// ===== SOCKET CONNECTION =====
+	socket.on('connect', function() { 
+		console.log('🔗 Advanced Admin connected');
+		socket.emit('admin'); 
+		updateStatus('physics-status', 'Connected', '#00ff88');
+	});
+
+	socket.on('newImage', function(d) {
+		console.log('🐛 New insect with full physics:', d.id);
+		if (!insects[d.id]) {
+			insects[d.id] = createNewInsect(d.id, d.image);
+			loadCompleteInsectData(d.id, d.image);
+		}
+	});
+
+	socket.on('remove', function(d) { 
+		console.log('🗑️ Insect removed:', d.id);
+		delete insects[d.id]; 
+		updateInsectCount();
+	});
+
+	socket.on('imageChange', function(d) {
+		if (!insects[d.id]) {
+			insects[d.id] = createNewInsect(d.id, d.img);
+			loadCompleteInsectData(d.id, d.img);
+		}
+		
+		let ins = insects[d.id];
+		// Update position and state data - USE EXACT VALUES FROM CUSTOMER
+		ins.x = (d.x / 3160) * windowWidth + 45;
+		ins.y = (d.y / 1200) * windowHeight + 45;
+		ins.rads = d.rads;  // Use EXACT rotation from customer
+		ins.angle1 = d.rads;  // Sync angle1 with customer rotation
+		ins.insectType = d.insectType || ins.insectType;
+		ins.currentFrame = d.currentFrame || 0;
+		ins.behaviorState = d.behaviorState || 'exploring';
+		ins.legData = d.legData || null;
+		ins.realisticData = d.realisticData || {};
+		
+		// USE CUSTOMER'S EXACT COLOR - PERFECT SYNCHRONIZATION
+		if (d.spriteTint) {
+			ins.spriteTint = d.spriteTint;
+			console.log(`🎨 Color synced for insect ${d.id}:`, d.spriteTint);
+		}
+		
+		// Update physics targets to current position (no independent movement)
+		ins.targetX = ins.x;
+		ins.targetY = ins.y;
+		ins.smoothTargetX = ins.x;
+		ins.smoothTargetY = ins.y;
+		
+		if (d.img && d.img !== ins.imgUrl) {
+			ins.imgUrl = d.img;
+			loadCompleteInsectData(d.id, d.img);
+		}
+		
+		// Update sync status to show we're receiving data
+		updateStatus('sync-status', 'Synced ✓', '#00ff88');
+	});
+
+	// ===== INSECT CREATION AND MANAGEMENT =====
+	function createNewInsect(id, imageUrl) {
+		return {
+			// Basic identity
+			id: id,
+			imgUrl: imageUrl,
+			img: null,
+			imgLoaded: false,
+			
+			// Position and movement (admin coordinates)
+			x: windowWidth / 2,
+			y: windowHeight / 2,
+			targetX: windowWidth / 2,
+			targetY: windowHeight / 2,
+			smoothTargetX: windowWidth / 2,
+			smoothTargetY: windowHeight / 2,
+			velocityX: 0,
+			velocityY: 0,
+			angle1: 0,
+			rads: 0,
+			
+			// Insect classification and behavior
+			insectType: 'yellow_bee',
+			behaviorState: 'exploring',
+			legData: null,
+			realisticData: {},
+			
+			// Animation and sprite management
+			spriteSheet: null,
+			spriteFrames: [],
+			currentFrame: 0,
+			frameCounter: 0,
+			animationFrame: 0,
+			isMoving: false,
+			movementSpeed: 0,
+			
+			// Advanced physics variables (replicated from customer.pug)
+			stateTimer: 0,
+			wingPhase: 0,
+			bodyTilt: 0,
+			hoverOffset: { x: 0, y: 0 },
+			momentumX: 0,
+			momentumY: 0,
+			acceleration: { x: 0, y: 0 },
+			lastVelocityX: 0,
+			lastVelocityY: 0,
+			groundContact: false,
+			walkPhase: 0,
+			antennaeAngle: 0,
+			bodyWeight: 0,
+			
+			// Visual properties
+			spriteTint: null, // Will be set by customer's exact color
+			size: 90,
+			
+			// Timing
+			lastUpdateTime: Date.now()
+		};
+	}
+
+	// ===== SPRITE CONFIGURATIONS (COMPLETE REPLICATION) =====
+	let spriteConfigs = {
+		// BEES - Realistic flying insect behavior
+		yellow_bee: {
+			useSpriteSheet: true, spriteFile: 'bee_sprite.png', frameWidth: 150, frameHeight: 120,
+			framesX: 2, framesY: 1, totalFrames: 2, wingBeatFreq: 230, wingBeatAmplitude: 0.15,
+			hoverJitter: 2.5, hoverFreq: 0.3, liftCoefficient: 0.8, dragCoefficient: 0.12,
+			maxTilt: 25, animationSpeed: 20, idleSpeed: 15, easing: 0.18, friction: 0.82,
+			maxSpeed: 480, acceleration: 2.0
+		},
+		purple_bee: {
+			useSpriteSheet: true, spriteFile: 'bee_sprite.png', frameWidth: 150, frameHeight: 120,
+			framesX: 2, framesY: 1, totalFrames: 2, wingBeatFreq: 210, wingBeatAmplitude: 0.12,
+			hoverJitter: 2.0, hoverFreq: 0.25, liftCoefficient: 0.75, dragCoefficient: 0.1,
+			maxTilt: 22, animationSpeed: 18, idleSpeed: 12, easing: 0.18, friction: 0.85,
+			maxSpeed: 400, acceleration: 1.75
+		},
+		blue_bee: {
+			useSpriteSheet: true, spriteFile: 'bee_sprite.png', frameWidth: 150, frameHeight: 120,
+			framesX: 2, framesY: 1, totalFrames: 2, wingBeatFreq: 250, wingBeatAmplitude: 0.18,
+			hoverJitter: 3.0, hoverFreq: 0.35, liftCoefficient: 0.85, dragCoefficient: 0.15,
+			maxTilt: 28, animationSpeed: 25, idleSpeed: 18, easing: 0.18, friction: 0.8,
+			maxSpeed: 560, acceleration: 2.25
+		},
+		
+		// BUTTERFLIES - Graceful mathematical animation (FINE-TUNED FOR SMOOTHNESS)
+		red_butterfly: {
+			useSpriteSheet: false, wingFlapSpeed: 0.10, wingFlapIntensity: 0.35,
+			bodyFloatSpeed: 0.05, bodyFloatIntensity: 10, glideAmplitude: 12,
+			scaleVariation: 0.20, rotationVariation: 6, easing: 0.14, friction: 0.92,
+			maxSpeed: 200, acceleration: 0.75
+		},
+		purple_butterfly: {
+			useSpriteSheet: false, wingFlapSpeed: 0.08, wingFlapIntensity: 0.30,
+			bodyFloatSpeed: 0.04, bodyFloatIntensity: 8, glideAmplitude: 10,
+			scaleVariation: 0.18, rotationVariation: 5, easing: 0.14, friction: 0.94,
+			maxSpeed: 160, acceleration: 0.6
+		},
+		yellow_butterfly: {
+			useSpriteSheet: false, wingFlapSpeed: 0.12, wingFlapIntensity: 0.25,
+			bodyFloatSpeed: 0.06, bodyFloatIntensity: 7, glideAmplitude: 8,
+			scaleVariation: 0.15, rotationVariation: 4, easing: 0.14, friction: 0.9,
+			maxSpeed: 240, acceleration: 1.0
+		},
+		pink_butterfly: {
+			useSpriteSheet: false, wingFlapSpeed: 0.09, wingFlapIntensity: 0.32,
+			bodyFloatSpeed: 0.045, bodyFloatIntensity: 9, glideAmplitude: 11,
+			scaleVariation: 0.22, rotationVariation: 5, easing: 0.14, friction: 0.93,
+			maxSpeed: 180, acceleration: 0.65
+		},
+		
+		// BEETLES - Realistic walking mechanics
+		golden_beetle: {
+			useSpriteSheet: true, spriteFile: 'beetle_sprite.png', frameWidth: 120, frameHeight: 120,
+			framesX: 3, framesY: 3, totalFrames: 7, walkCycleLength: 1.5,
+			legPhases: [0, 0.5, 0.25, 0.75, 0.125, 0.625], bodyRockAmplitude: 6, stepHeight: 4,
+			groundFriction: 0.8, bodyWeight: 1.2, centerOfMass: 0.6, legStrength: 0.8,
+			stabilityFactor: 0.7, animationSpeed: 8, idleSpeed: 0, easing: 0.14,
+			friction: 0.65, maxSpeed: 1200, acceleration: 3.0
+		},
+		weavil: {
+			useSpriteSheet: true, spriteFile: 'beetle_sprite.png', frameWidth: 120, frameHeight: 120,
+			framesX: 3, framesY: 3, totalFrames: 7, walkCycleLength: 1.8,
+			legPhases: [0, 0.6, 0.3, 0.9, 0.15, 0.75], bodyRockAmplitude: 4, stepHeight: 3,
+			groundFriction: 0.9, bodyWeight: 0.8, centerOfMass: 0.7, legStrength: 0.6,
+			stabilityFactor: 0.8, animationSpeed: 6, idleSpeed: 0, easing: 0.14,
+			friction: 0.7, maxSpeed: 900, acceleration: 2.25
+		}
+	};
+
+	// ===== UTILITY FUNCTIONS =====
+	function getRandomTintColor() {
+		let h = Math.floor(Math.random() * 360);
+		let s = 80 + Math.random() * 20;
+		let l = 45 + Math.random() * 30;
+		
+		function hslToRgb(h, s, l) {
+			s /= 100; l /= 100;
+			let c = (1 - Math.abs(2 * l - 1)) * s;
+			let x = c * (1 - Math.abs((h / 60) % 2 - 1));
+			let m = l - c/2, r=0, g=0, b=0;
+			if (h < 60) { r = c; g = x; }
+			else if (h < 120) { r = x; g = c; }
+			else if (h < 180) { g = c; b = x; }
+			else if (h < 240) { g = x; b = c; }
+			else if (h < 300) { r = x; b = c; }
+			else { r = c; b = x; }
+			return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+		}
+		return hslToRgb(h, s, l);
+	}
+
+	function determineInsectType(imagePath) {
+		let path = imagePath.toLowerCase();
+		
+		if (path.includes('yellow') && (path.includes('bee') || path.includes('bumble'))) return 'yellow_bee';
+		if (path.includes('purple') && (path.includes('bee') || path.includes('bumble'))) return 'purple_bee';
+		if (path.includes('blue') && (path.includes('bee') || path.includes('bumble'))) return 'blue_bee';
+		if (path.includes('red') && path.includes('butterfly')) return 'red_butterfly';
+		if (path.includes('purple') && path.includes('butterfly')) return 'purple_butterfly';
+		if (path.includes('yellow') && path.includes('butterfly')) return 'yellow_butterfly';
+		if (path.includes('pink') && path.includes('butterfly')) return 'pink_butterfly';
+		if (path.includes('weavil') || path.includes('weevil')) return 'weavil';
+		if (path.includes('beetle') || path.includes('golden') || path.includes('scarab')) return 'golden_beetle';
+		
+		// Fallbacks
+		if (path.includes('bee') || path.includes('bumble')) return 'yellow_bee';
+		if (path.includes('butterfly')) return 'red_butterfly';
+		if (path.includes('beetle') || path.includes('ant') || path.includes('spider') || 
+			path.includes('weavil') || path.includes('weevil')) return 'golden_beetle';
+		
+		return 'yellow_bee';
+	}
+
+	function updateStatus(elementId, text, color = '#fff') {
+		let element = document.getElementById(elementId);
+		if (element) {
+			element.textContent = text;
+			element.style.color = color;
+		}
+	}
+
+	function updateInsectCount() {
+		let count = Object.keys(insects).length;
+		let element = document.getElementById('insect-count');
+		if (element) element.textContent = count;
+	}
+
+	// ===== SPRITE SHEET LOADING AND MANAGEMENT =====
+	function loadCompleteInsectData(id, imageUrl) {
+		let insect = insects[id];
+		if (!insect) return;
+		
+		// Determine insect type from image path
+		insect.insectType = determineInsectType(imageUrl);
+		console.log(`🐛 Insect ${id} classified as: ${insect.insectType}`);
+		
+		// Set appropriate size based on insect type
+		if (insect.insectType.includes('butterfly')) {
+			insect.size = 100;
+		} else if (insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) {
+			insect.size = 85;
+		} else {
+			insect.size = 90;
+		}
+		
+		// Load main image
+		loadImage(imageUrl, function(loadedImg) {
+			insect.img = loadedImg;
+			console.log(`✅ Image loaded for insect ${id}`);
+			
+			// Load sprite sheet if needed
+			let config = spriteConfigs[insect.insectType];
+			if (config && config.useSpriteSheet) {
+				loadSpriteSheetForInsect(insect, config, function(success) {
+					insect.imgLoaded = true;
+					updateInsectCount();
+					if (success) {
+						console.log(`🎬 Sprite sheet loaded for ${id}`);
+						updateStatus('sprite-status', 'Loaded', '#00ff88');
+					} else {
+						console.log(`⚠️ Sprite fallback for ${id}`);
+						updateStatus('sprite-status', 'Fallback', '#ffaa00');
+					}
+				});
+			} else {
+				insect.imgLoaded = true;
+				updateInsectCount();
+				updateStatus('sprite-status', 'Static', '#88aaff');
+			}
+		}, function() {
+			console.log(`❌ Failed to load image for insect ${id}`);
+		});
+	}
+
+	function loadSpriteSheetForInsect(insect, config, callback) {
+		if (!config.useSpriteSheet) {
+			callback(true);
+			return;
+		}
+
+		let possiblePaths = [
+			`../public/images/${config.spriteFile}`,
+			`/static/images/${config.spriteFile}`,
+			`./public/images/${config.spriteFile}`,
+			`/images/${config.spriteFile}`
+		];
+
+		function tryPath(pathIndex) {
+			if (pathIndex >= possiblePaths.length) {
+				console.error(`❌ Failed to load sprite sheet: ${config.spriteFile}`);
+				callback(false);
+				return;
+			}
+
+			let path = possiblePaths[pathIndex];
+			console.log(`🔄 Loading sprite: ${path}`);
+
+			loadImage(path,
+				function(img) {
+					console.log(`✅ Sprite loaded: ${path}`);
+					insect.spriteSheet = img;
+					extractFramesForInsect(insect, config);
+					callback(true);
+				},
+				function(err) {
+					console.log(`❌ Failed: ${path}`);
+					tryPath(pathIndex + 1);
+				}
+			);
+		}
+
+		tryPath(0);
+	}
+
+	function extractFramesForInsect(insect, config) {
+		insect.spriteFrames = [];
+		for (let i = 0; i < config.totalFrames; i++) {
+			let frameX = (i % config.framesX) * config.frameWidth;
+			let frameY = Math.floor(i / config.framesX) * config.frameHeight;
+			let frameGraphics = createGraphics(config.frameWidth, config.frameHeight);
+			frameGraphics.copy(insect.spriteSheet, frameX, frameY, config.frameWidth, config.frameHeight, 
+							 0, 0, config.frameWidth, config.frameHeight);
+			insect.spriteFrames[i] = frameGraphics;
+		}
+		insect.currentFrame = 0;
+	}
+
+	// ===== ADVANCED PHYSICS REPLICATION =====
+	function updateRealisticBehaviorForInsect(insect) {
+		let config = spriteConfigs[insect.insectType];
+		if (!config) return;
+
+		insect.stateTimer++;
+		insect.animationFrame++;
+
+		// Calculate acceleration for realistic physics
+		insect.acceleration.x = insect.velocityX - insect.lastVelocityX;
+		insect.acceleration.y = insect.velocityY - insect.lastVelocityY;
+		insect.lastVelocityX = insect.velocityX;
+		insect.lastVelocityY = insect.velocityY;
+
+		if (config.useSpriteSheet && insect.insectType.includes('bee')) {
+			updateBeePhysicsForInsect(insect, config);
+		} else if (config.useSpriteSheet && (insect.insectType.includes('beetle') || insect.insectType.includes('weavil'))) {
+			updateBeetlePhysicsForInsect(insect, config);
+		}
+	}
+
+	function updateBeePhysicsForInsect(insect, config) {
+		// Realistic bee hovering with micro-instabilities
+		insect.wingPhase += config.wingBeatFreq * 0.1;
+		
+		// Wing beat creates lift and slight instability
+		let liftForce = sin(insect.wingPhase) * config.liftCoefficient;
+		let wingDownstroke = sin(insect.wingPhase) > 0;
+		
+		// Hovering instability (bees can't hover perfectly)
+		insect.hoverOffset.x += (noise(insect.animationFrame * 0.01) - 0.5) * config.hoverJitter;
+		insect.hoverOffset.y += (noise(insect.animationFrame * 0.01 + 100) - 0.5) * config.hoverJitter;
+		
+		// Dampen hover offset
+		insect.hoverOffset.x *= 0.95;
+		insect.hoverOffset.y *= 0.95;
+		
+		// Body tilt based on acceleration (like real flight)
+		let targetTilt = atan2(insect.acceleration.y, insect.acceleration.x) * 0.3;
+		insect.bodyTilt = lerp(insect.bodyTilt, targetTilt, 0.1);
+		insect.bodyTilt = constrain(insect.bodyTilt, -radians(config.maxTilt), radians(config.maxTilt));
+
+		// Antennae movement
+		insect.antennaeAngle = sin(insect.animationFrame * 0.2) * 0.3 + insect.bodyTilt * 0.5;
+
+		// Sprite animation sync with wing beats
+		if (wingDownstroke !== (insect.currentFrame === 1)) {
+			insect.currentFrame = wingDownstroke ? 1 : 0;
+		}
+	}
+
+	function updateBeetlePhysicsForInsect(insect, config) {
+		if (insect.isMoving) {
+			// REALISTIC BEETLE WALKING - Clean and smooth
+			let realWalkSpeed = insect.movementSpeed * 0.12;
+			insect.walkPhase += realWalkSpeed;
+			
+			let totalCycleTime = config.walkCycleLength * 60;
+			let cycleProgress = (insect.walkPhase % totalCycleTime) / totalCycleTime;
+			
+			let rawFrameIndex = cycleProgress * config.totalFrames;
+			let frameIndex = Math.floor(rawFrameIndex);
+			
+			insect.currentFrame = constrain(frameIndex, 0, config.totalFrames - 1);
+			
+			// Get leg configuration for body response
+			let legConfiguration = getLegConfiguration(insect.currentFrame, 0);
+			
+			// BODY RESPONDS TO LEG POSITIONS
+			insect.bodyWeight = legConfiguration.weight;
+			let legSupport = legConfiguration.support;
+			let legPush = legConfiguration.push;
+			let stability = legConfiguration.stability;
+			
+			// VERTICAL MOVEMENT - Body height based on leg extension
+			let legExtension = legConfiguration.extension;
+			let bodyHeight = -legExtension * config.stepHeight;
+			
+			// FORWARD PUSH - When legs push backward, body moves forward
+			let forwardThrust = legConfiguration.thrust;
+			let bodyPush = forwardThrust * insect.movementSpeed * 0.5;
+			
+			// SIDE BALANCE - Body tips based on which legs are up/down
+			let legBalance = legConfiguration.balance;
+			let sideTilt = legBalance * config.bodyRockAmplitude;
+			
+			// TILT FROM LEG POSITIONS
+			insect.bodyTilt = radians(legConfiguration.tilt) + (forwardThrust * 0.1);
+			
+			// GROUND CONTACT
+			insect.groundContact = legConfiguration.grounded;
+			
+			// APPLY PHYSICS
+			insect.hoverOffset.x = sideTilt + bodyPush;
+			insect.hoverOffset.y = bodyHeight;
+			
+			// MOMENTUM FROM LEG PUSHES
+			if (forwardThrust > 0.5) {
+				insect.momentumX += cos(insect.angle1) * forwardThrust * 0.3;
+				insect.momentumY += sin(insect.angle1) * forwardThrust * 0.3;
+			}
+			insect.momentumX *= 0.95;
+			insect.momentumY *= 0.95;
+			insect.hoverOffset.x += insect.momentumX;
+			insect.hoverOffset.y += insect.momentumY;
+			
+			// ANTENNAE RESPOND TO WALKING
+			insect.antennaeAngle = sin(insect.walkPhase * 0.5) * 0.4 + cos(rawFrameIndex * 0.8) * 0.2;
+			
+		} else {
+			// RESTING BEHAVIOR
+			insect.walkPhase *= 0.96;
+			insect.bodyWeight = 0.95;
+			insect.bodyTilt *= 0.9;
+			insect.currentFrame = 0;
+			
+			// SETTLED POSITION
+			insect.hoverOffset.y = insect.bodyWeight * 2;
+			insect.hoverOffset.x *= 0.9;
+			
+			// SUBTLE BREATHING
+			let breathe = sin(insect.animationFrame * 0.04) * 0.4;
+			insect.hoverOffset.y += breathe;
+			
+			// ANTENNAE STILL ACTIVE
+			insect.antennaeAngle = sin(insect.animationFrame * 0.06) * 0.15;
+			
+			insect.groundContact = true;
+			insect.momentumX *= 0.9;
+			insect.momentumY *= 0.9;
+		}
+		
+		// CONSTRAIN LIMITS
+		insect.bodyTilt = constrain(insect.bodyTilt, -radians(30), radians(30));
+		insect.antennaeAngle = constrain(insect.antennaeAngle, -radians(50), radians(50));
+		insect.hoverOffset.x = constrain(insect.hoverOffset.x, -10, 10);
+		insect.hoverOffset.y = constrain(insect.hoverOffset.y, -6, 4);
+	}
+
+	// ===== LEG CONFIGURATION SYSTEM (COMPLETE REPLICATION) =====
+	function getLegConfiguration(frameIndex, progress) {
+		let configs = [
+			// Frame 0: Rest position - all legs down
+			{
+				weight: 0.9, support: 1.0, push: 0.0, stability: 1.0, extension: 0.1,
+				thrust: 0.0, balance: 0.0, tilt: 0, grounded: true,
+				legs: {
+					L1: {down: true, forward: 0.0, height: 0.0},
+					L2: {down: true, forward: 0.0, height: 0.0},
+					L3: {down: true, forward: 0.0, height: 0.0},
+					R1: {down: true, forward: 0.0, height: 0.0},
+					R2: {down: true, forward: 0.0, height: 0.0},
+					R3: {down: true, forward: 0.0, height: 0.0}
+				}
+			},
+			
+			// Frame 1: Right tripod (R1,L2,R3) starts lifting
+			{
+				weight: 0.7, support: 0.5, push: 0.2, stability: 0.6, extension: 0.4,
+				thrust: 0.1, balance: -0.3, tilt: 2, grounded: false,
+				legs: {
+					L1: {down: true, forward: 0.1, height: 0.0},
+					L2: {down: false, forward: -0.2, height: 0.3},
+					L3: {down: true, forward: 0.1, height: 0.0},
+					R1: {down: false, forward: -0.2, height: 0.3},
+					R2: {down: true, forward: 0.1, height: 0.0},
+					R3: {down: false, forward: -0.2, height: 0.3}
+				}
+			},
+			
+			// Frame 2: Right tripod high and moving forward
+			{
+				weight: 0.6, support: 0.5, push: 0.4, stability: 0.4, extension: 0.8,
+				thrust: 0.3, balance: -0.5, tilt: 5, grounded: false,
+				legs: {
+					L1: {down: true, forward: 0.3, height: 0.0},
+					L2: {down: false, forward: 0.2, height: 0.8},
+					L3: {down: true, forward: 0.3, height: 0.0},
+					R1: {down: false, forward: 0.2, height: 0.8},
+					R2: {down: true, forward: 0.3, height: 0.0},
+					R3: {down: false, forward: 0.2, height: 0.8}
+				}
+			},
+			
+			// Frame 3: Right tripod coming down, left tripod preparing
+			{
+				weight: 0.8, support: 0.7, push: 0.6, stability: 0.5, extension: 0.5,
+				thrust: 0.5, balance: 0.0, tilt: 3, grounded: true,
+				legs: {
+					L1: {down: false, forward: 0.0, height: 0.2},
+					L2: {down: true, forward: 0.4, height: 0.0},
+					L3: {down: false, forward: 0.0, height: 0.2},
+					R1: {down: true, forward: 0.4, height: 0.0},
+					R2: {down: false, forward: 0.0, height: 0.2},
+					R3: {down: true, forward: 0.4, height: 0.0}
+				}
+			},
+			
+			// Frame 4: Left tripod (L1,R2,L3) lifting
+			{
+				weight: 0.7, support: 0.5, push: 0.3, stability: 0.6, extension: 0.6,
+				thrust: 0.4, balance: 0.3, tilt: 4, grounded: false,
+				legs: {
+					L1: {down: false, forward: -0.2, height: 0.4},
+					L2: {down: true, forward: 0.2, height: 0.0},
+					L3: {down: false, forward: -0.2, height: 0.4},
+					R1: {down: true, forward: 0.2, height: 0.0},
+					R2: {down: false, forward: -0.2, height: 0.4},
+					R3: {down: true, forward: 0.2, height: 0.0}
+				}
+			},
+			
+			// Frame 5: Left tripod high and forward
+			{
+				weight: 0.6, support: 0.5, push: 0.5, stability: 0.4, extension: 0.9,
+				thrust: 0.6, balance: 0.5, tilt: 6, grounded: false,
+				legs: {
+					L1: {down: false, forward: 0.3, height: 0.9},
+					L2: {down: true, forward: 0.4, height: 0.0},
+					L3: {down: false, forward: 0.3, height: 0.9},
+					R1: {down: true, forward: 0.4, height: 0.0},
+					R2: {down: false, forward: 0.3, height: 0.9},
+					R3: {down: true, forward: 0.4, height: 0.0}
+				}
+			},
+			
+			// Frame 6: Power stroke - all legs down, maximum push
+			{
+				weight: 1.0, support: 1.0, push: 0.8, stability: 0.8, extension: 0.2,
+				thrust: 0.8, balance: 0.0, tilt: 8, grounded: true,
+				legs: {
+					L1: {down: true, forward: 0.5, height: 0.0},
+					L2: {down: true, forward: 0.3, height: 0.0},
+					L3: {down: true, forward: 0.5, height: 0.0},
+					R1: {down: true, forward: 0.5, height: 0.0},
+					R2: {down: true, forward: 0.3, height: 0.0},
+					R3: {down: true, forward: 0.5, height: 0.0}
+				}
+			}
+		];
+		
+		return configs[frameIndex] || configs[0];
+	}
+
+	// ===== 3D LEG DRAWING SYSTEM (COMPLETE REPLICATION) =====
+	function drawBeetleLegsForInsect(insect, currentX, currentY, angle, legConfig) {
+		if (!insect.insectType.includes('beetle') && !insect.insectType.includes('weavil')) return;
+		
+		push();
+		translate(currentX, currentY);
+		rotate(angle + radians(90));
+		
+		// 3D perspective settings
+		let groundLevel = 40;
+		let perspectiveFactor = 0.7;
+		let bodyHeight = 8;
+		
+		// Beetle body dimensions for leg positioning
+		let bodyWidth = 25;
+		let bodyLength = 35;
+		
+		// Leg positions relative to beetle body with 3D Z-depth
+		let legPositions = [
+			{name: 'L1', x: -bodyWidth*0.8, y: -bodyLength*0.6, z: 0.8, side: 'left'},
+			{name: 'L2', x: -bodyWidth*0.9, y: 0, z: 1.0, side: 'left'},
+			{name: 'L3', x: -bodyWidth*0.8, y: bodyLength*0.6, z: 0.6, side: 'left'},
+			{name: 'R1', x: bodyWidth*0.8, y: -bodyLength*0.6, z: 0.2, side: 'right'},
+			{name: 'R2', x: bodyWidth*0.9, y: 0, z: 0.0, side: 'right'},
+			{name: 'R3', x: bodyWidth*0.8, y: bodyLength*0.6, z: 0.4, side: 'right'}
+		];
+		
+		// Sort legs by Z-depth for proper rendering order
+		let sortedLegs = legPositions.slice().sort((a, b) => a.z - b.z);
+		
+		// Draw 3D ground plane first
+		if (insect.isMoving) {
+			drawGroundPlane(groundLevel, bodyWidth * 3);
+		}
+		
+		// Draw 3D leg shadows
+		sortedLegs.forEach(function(pos) {
+			let leg = legConfig.legs[pos.name];
+			if (!leg) return;
+			drawLeg3DShadow(pos, leg, groundLevel, bodyHeight, perspectiveFactor);
+		});
+		
+		// Draw each leg with 3D effects (back to front)
+		sortedLegs.forEach(function(pos) {
+			let leg = legConfig.legs[pos.name];
+			if (!leg) return;
+			drawLeg3D(pos, leg, groundLevel, bodyHeight, perspectiveFactor);
+		});
+		
+		// Draw 3D tripod group connections
+		if (insect.isMoving) {
+			draw3DTripodConnections(legPositions, legConfig, perspectiveFactor, insect.currentFrame);
+		}
+		
+		// 3D Frame indicator
+		if (insect.isMoving) {
+			push();
+			fill(255, 255, 0, 200);
+			textAlign(CENTER, CENTER);
+			textSize(12);
+			fill(0, 0, 0, 100);
+			text('F' + insect.currentFrame, 1, -49);
+			fill(255, 255, 0, 255);
+			text('F' + insect.currentFrame, 0, -50);
+			pop();
+		}
+		
+		pop();
+	}
+
+	// 3D GROUND PLANE
+	function drawGroundPlane(groundLevel, size) {
+		push();
+		translate(0, groundLevel);
+		
+		stroke(100, 100, 100, 80);
+		strokeWeight(1);
+		let gridSize = 10;
+		let gridLines = Math.floor(size / gridSize);
+		
+		for (let i = -gridLines; i <= gridLines; i++) {
+			let lineAlpha = 80 - Math.abs(i) * 8;
+			if (lineAlpha > 0) {
+				stroke(100, 100, 100, lineAlpha);
+				line(i * gridSize, -size, i * gridSize, size);
+				line(-size, i * gridSize, size, i * gridSize);
+			}
+		}
+		
+		fill(120, 120, 120, 30);
+		noStroke();
+		ellipse(0, 0, size * 1.5, size * 0.8);
+		
+		for (let i = 0; i < 20; i++) {
+			let texX = random(-size * 0.8, size * 0.8);
+			let texY = random(-size * 0.6, size * 0.6);
+			let texAlpha = 25 - (Math.abs(texX) + Math.abs(texY)) / size * 15;
+			if (texAlpha > 0) {
+				fill(80, 60, 40, texAlpha);
+				circle(texX, texY, random(2, 4));
+			}
+		}
+		
+		pop();
+	}
+
+	// 3D LEG SHADOW
+	function drawLeg3DShadow(pos, leg, groundLevel, bodyHeight, perspectiveFactor) {
+		if (!leg.down && leg.height > 0.3) return;
+		
+		push();
+		
+		let legStartX = pos.x;
+		let legStartY = pos.y;
+		let legLength = 15;
+		let legEndX = legStartX + (pos.side === 'left' ? -1 : 1) * legLength;
+		let legEndY = legStartY + leg.forward * 8;
+		
+		let shadowStartX = legStartX;
+		let shadowStartY = legStartY + groundLevel;
+		let shadowEndX = legEndX;
+		let shadowEndY = legEndY + groundLevel;
+		
+		let shadowAlpha = leg.down ? 150 : (150 * (1 - leg.height));
+		
+		stroke(0, 0, 0, shadowAlpha);
+		strokeWeight(6);
+		line(shadowStartX, shadowStartY, shadowEndX, shadowEndY);
+		
+		fill(0, 0, 0, shadowAlpha * 0.8);
+		noStroke();
+		ellipse(shadowEndX, shadowEndY, 8, 4);
+		
+		pop();
+	}
+
+	// 3D LEG DRAWING
+	function drawLeg3D(pos, leg, groundLevel, bodyHeight, perspectiveFactor) {
+		push();
+		
+		let legStartX = pos.x;
+		let legStartY = pos.y;
+		let legStartZ = bodyHeight;
+		
+		let legLength = 15;
+		let legEndX = legStartX + (pos.side === 'left' ? -1 : 1) * legLength;
+		let legEndY = legStartY;
+		let legEndZ = bodyHeight;
+		
+		legEndX += leg.forward * 8;
+		
+		if (leg.down) {
+			legEndZ = 0;
+		} else {
+			let liftHeight = leg.height * 15;
+			let arcProgress = leg.forward + 0.5;
+			legEndZ = bodyHeight + sin(arcProgress * PI) * liftHeight;
+			legEndY += cos(arcProgress * PI) * 3;
+		}
+		
+		let depthScale = perspectiveFactor + (1 - perspectiveFactor) * pos.z;
+		let legThickness = leg.down ? 4 : 3;
+		legThickness *= depthScale;
+		
+		let isLifted = !leg.down;
+		let baseColor = isLifted ? color(255, 179, 71) : color(139, 69, 19);
+		let depthDarkening = 255 * (0.7 + 0.3 * pos.z);
+		let legColor = lerpColor(color(0), baseColor, depthDarkening / 255);
+		
+		// Draw 3D leg segments
+		let segmentCount = 3;
+		for (let seg = 0; seg < segmentCount; seg++) {
+			let segmentProgress = seg / (segmentCount - 1);
+			let nextProgress = (seg + 1) / (segmentCount - 1);
+			
+			let segStartX = lerp(legStartX, legEndX, segmentProgress);
+			let segStartY = lerp(legStartY, legEndY, segmentProgress);
+			let segStartZ = lerp(legStartZ, legEndZ, segmentProgress);
+			
+			let segEndX = lerp(legStartX, legEndX, nextProgress);
+			let segEndY = lerp(legStartY, legEndY, nextProgress);
+			let segEndZ = lerp(legStartZ, legEndZ, nextProgress);
+			
+			let start2DY = segStartY - segStartZ;
+			let end2DY = segEndY - segEndZ;
+			
+			let startScale = perspectiveFactor + (1 - perspectiveFactor) * (segStartZ / 20 + 0.5);
+			let endScale = perspectiveFactor + (1 - perspectiveFactor) * (segEndZ / 20 + 0.5);
+			
+			stroke(legColor);
+			strokeWeight(legThickness * ((startScale + endScale) / 2));
+			line(segStartX, start2DY, segEndX, end2DY);
+			
+			if (seg < segmentCount - 1) {
+				fill(red(legColor) * 0.8, green(legColor) * 0.8, blue(legColor) * 0.8);
+				noStroke();
+				let jointSize = 3 * ((startScale + endScale) / 2);
+				ellipse(segEndX, end2DY, jointSize, jointSize);
+			}
+		}
+		
+		// Draw 3D leg tip
+		let tipScale = perspectiveFactor + (1 - perspectiveFactor) * (legEndZ / 20 + 0.5);
+		let tip2DY = legEndY - legEndZ;
+		
+		if (leg.down) {
+			fill(101, 67, 33);
+			noStroke();
+			ellipse(legEndX, tip2DY, 6 * tipScale, 4 * tipScale);
+			
+			stroke(0, 255, 0, 180);
+			strokeWeight(2);
+			noFill();
+			ellipse(legEndX, tip2DY, 10 * tipScale, 6 * tipScale);
+			
+			fill(0, 255, 0, 60);
+			noStroke();
+			ellipse(legEndX, tip2DY, 15 * tipScale, 8 * tipScale);
+		} else {
+			fill(255, 179, 71, 200);
+			noStroke();
+			ellipse(legEndX, tip2DY, 4 * tipScale, 4 * tipScale);
+			
+			for (let i = 1; i <= 4; i++) {
+				let trailAlpha = 200 - i * 40;
+				let trailScale = tipScale * (1 - i * 0.1);
+				fill(255, 179, 71, trailAlpha);
+				
+				let trailX = legEndX - leg.forward * i * 2;
+				let trailZ = legEndZ + i * 2;
+				let trail2DY = legEndY - trailZ;
+				
+				ellipse(trailX, trail2DY, 4 * trailScale, 4 * trailScale);
+			}
+		}
+		
+		pop();
+	}
+
+	// 3D TRIPOD CONNECTIONS
+	function draw3DTripodConnections(legPositions, legConfig, perspectiveFactor, currentFrame) {
+		// Tripod 1: R1, L2, R3
+		let tripod1Active = (currentFrame === 1 || currentFrame === 2);
+		if (tripod1Active) {
+			stroke(255, 0, 0, 120);
+			strokeWeight(2);
+			noFill();
+			
+			let r1 = legPositions.find(p => p.name === 'R1');
+			let l2 = legPositions.find(p => p.name === 'L2');
+			let r3 = legPositions.find(p => p.name === 'R3');
+			
+			line(r1.x, r1.y - 5, l2.x, l2.y - 8);
+			line(l2.x, l2.y - 8, r3.x, r3.y - 3);
+		}
+		
+		// Tripod 2: L1, R2, L3
+		let tripod2Active = (currentFrame === 4 || currentFrame === 5);
+		if (tripod2Active) {
+			stroke(0, 0, 255, 120);
+			strokeWeight(2);
+			noFill();
+			
+			let l1 = legPositions.find(p => p.name === 'L1');
+			let r2 = legPositions.find(p => p.name === 'R2');
+			let l3 = legPositions.find(p => p.name === 'L3');
+			
+			line(l1.x, l1.y - 6, r2.x, r2.y - 2);
+			line(r2.x, r2.y - 2, l3.x, l3.y - 4);
+		}
+	}
+
+	// ===== MOVEMENT AND ANIMATION =====
+	function updateSmoothMovementForInsect(insect) {
+		let config = spriteConfigs[insect.insectType];
+		if (!config) config = spriteConfigs.yellow_bee;
+
+		let followDistance = 50;
+		let dx = insect.targetX - insect.x;
+		let dy = insect.targetY - insect.y;
+		let distanceToTarget = sqrt(dx * dx + dy * dy);
+		
+		if (distanceToTarget < followDistance) {
+			let angle = atan2(dy, dx);
+			let adjustedTargetX = insect.targetX - cos(angle) * (followDistance - distanceToTarget);
+			let adjustedTargetY = insect.targetY - sin(angle) * (followDistance - distanceToTarget);
+			insect.smoothTargetX = smoothLerp(insect.smoothTargetX, adjustedTargetX, 0.08);
+			insect.smoothTargetY = smoothLerp(insect.smoothTargetY, adjustedTargetY, 0.08);
+		} else {
+			insect.smoothTargetX = smoothLerp(insect.smoothTargetX, insect.targetX, 0.12);
+			insect.smoothTargetY = smoothLerp(insect.smoothTargetY, insect.targetY, 0.12);
+		}
+
+		dx = insect.smoothTargetX - insect.x;
+		dy = insect.smoothTargetY - insect.y;
+		let distance = sqrt(dx * dx + dy * dy);
+
+		if (distance > 1) {
+			dx /= distance;
+			dy /= distance;
+			let accelerationScale = min(distance / 100, 1);
+			insect.velocityX += dx * config.acceleration * accelerationScale;
+			insect.velocityY += dy * config.acceleration * accelerationScale;
+
+			let speed = sqrt(insect.velocityX * insect.velocityX + insect.velocityY * insect.velocityY);
+			if (speed > config.maxSpeed) {
+				insect.velocityX = (insect.velocityX / speed) * config.maxSpeed;
+				insect.velocityY = (insect.velocityY / speed) * config.maxSpeed;
+			}
+		}
+
+		insect.velocityX *= config.friction;
+		insect.velocityY *= config.friction;
+		insect.x += insect.velocityX;
+		insect.y += insect.velocityY;
+
+		let desiredAngle = atan2(insect.velocityY, insect.velocityX);
+		let angleDiff = desiredAngle - insect.angle1;
+		if (angleDiff > PI) angleDiff -= TWO_PI;
+		if (angleDiff < -PI) angleDiff += TWO_PI;
+		let angleEasing = map(insect.movementSpeed, 0, config.maxSpeed, 0.05, 0.15);
+		insect.angle1 += angleDiff * angleEasing;
+	}
+
+	function smoothLerp(current, target, factor) {
+		return current + (target - current) * factor;
+	}
+
+	function calculateNaturalMovementForInsect(insect) {
+		// Calculate movement speed for animation
+		insect.movementSpeed = sqrt(insect.velocityX * insect.velocityX + insect.velocityY * insect.velocityY);
+		insect.isMoving = insect.movementSpeed > 0.5;
+
+		// Update realistic behavior first
+		updateRealisticBehaviorForInsect(insect);
+
+		let config = spriteConfigs[insect.insectType];
+		if (!config) config = spriteConfigs.yellow_bee;
+
+		// BUTTERFLIES - Graceful mathematical animation (FINE-TUNED FOR SMOOTHNESS)
+		if (!config.useSpriteSheet) {
+			let organicTransforms = {
+				translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotation: 0
+			};
+
+			// EXACT SAME BUTTERFLY ANIMATION AS CUSTOMER VIEW
+			let wingFlap = sin(insect.animationFrame * config.wingFlapSpeed) * config.wingFlapIntensity;
+			let bodyFloat = sin(insect.animationFrame * config.bodyFloatSpeed) * config.bodyFloatIntensity;
+			let glideEffect = sin(insect.animationFrame * 0.03) * config.glideAmplitude;
+			
+			organicTransforms.scaleX = 1 + wingFlap + sin(insect.animationFrame * 0.08) * config.scaleVariation;
+			organicTransforms.scaleY = 1; // Y axis scale constant for natural look
+			organicTransforms.translateY = bodyFloat + glideEffect;
+			organicTransforms.translateX = sin(insect.animationFrame * 0.04) * 3;
+			organicTransforms.rotation = sin(insect.animationFrame * 0.06) * radians(config.rotationVariation);
+			
+			// Movement affects animation intensity (EXACT SAME AS CUSTOMER)
+			if (insect.isMoving) {
+				organicTransforms.scaleX *= (1 + insect.movementSpeed * 0.12);
+				organicTransforms.translateY *= (1 + insect.movementSpeed * 0.08);
+			} else {
+				organicTransforms.scaleX *= 0.6;
+				organicTransforms.translateY *= 0.8;
+			}
+
+			return organicTransforms;
+		}
+
+		// SPRITE-BASED INSECTS (bees, beetles) - Restore realistic transforms
+		let organicTransforms = {
+			translateX: insect.hoverOffset.x,
+			translateY: insect.hoverOffset.y,
+			scaleX: 1,
+			scaleY: 1,
+			rotation: insect.bodyTilt
+		};
+
+		// BEETLES - Restore full walking physics
+		if (insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) {
+			let legConfig = getLegConfiguration(insect.currentFrame, 0);
+			
+			// Restore all beetle physics effects
+			let weightEffect = legConfig.weight * 3;
+			organicTransforms.translateY += weightEffect;
+			organicTransforms.scaleY = 1 - (legConfig.weight * 0.12);
+			
+			if (legConfig.push > 0.3) {
+				let pushForceX = cos(insect.angle1) * legConfig.thrust * 2;
+				let pushForceY = -legConfig.extension * config.stepHeight * 0.5;
+				organicTransforms.translateX += pushForceX;
+				organicTransforms.translateY += pushForceY;
+			}
+			
+			// Balance and stability effects
+			let balanceShift = legConfig.balance * config.bodyRockAmplitude;
+			organicTransforms.translateX += balanceShift;
+			
+			if (legConfig.stability < 0.7) {
+				let instability = (1 - legConfig.stability) * insect.movementSpeed * 0.8;
+				organicTransforms.translateX += sin(insect.animationFrame * 0.3) * instability;
+				organicTransforms.translateY += cos(insect.animationFrame * 0.25) * instability * 0.5;
+			}
+			
+			// Ground contact compression
+			if (legConfig.grounded && insect.isMoving) {
+				let impactCompression = legConfig.support * 0.08;
+				organicTransforms.scaleY *= (1 - impactCompression);
+				organicTransforms.translateY += impactCompression * 3;
+			}
+			
+		} else if (insect.insectType.includes('bee')) {
+			// BEES - Restore hovering instability effects
+			organicTransforms.translateX += sin(insect.animationFrame * 0.15) * 0.8;
+			organicTransforms.translateY += cos(insect.animationFrame * 0.12) * 0.6;
+		}
+
+		return organicTransforms;
+	}
+
+	function getCurrentFrameForInsect(insect) {
+		let config = spriteConfigs[insect.insectType];
+		if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
+			return insect.spriteFrames[insect.currentFrame];
+		}
+		return null;
+	}
+
+	// ===== P5.JS SETUP AND MAIN LOOP =====
+	function setup() {
+		let c = createCanvas(windowWidth, windowHeight);
+		c.parent('admin-canvas');
+		background(0);
+		frameRate(60);
+		console.log('🎮 Advanced Admin canvas setup complete');
+		updateStatus('physics-status', 'Ready', '#00ff88');
+	}
+
+	function windowResized() { 
+		resizeCanvas(windowWidth, windowHeight); 
+		// Update all insect target positions for new screen size
+		for (let id in insects) {
+			let insect = insects[id];
+			insect.targetX = (insect.targetX / windowWidth) * windowWidth;
+			insect.targetY = (insect.targetY / windowHeight) * windowHeight;
+		}
+	}
+
+	function draw() {
+		background(0);
+		globalAnimationFrame++;
+		
+		// Update and draw each insect with FULL ANIMATION SYSTEM
+		for (let id in insects) {
+			let insect = insects[id];
+			if (!insect.imgLoaded) continue;
+			
+			// RESTORE FULL ANIMATION UPDATES
+			// Increment individual animation counters for each insect
+			insect.animationFrame++;
+			
+			// Update realistic physics behavior for animations
+			updateRealisticBehaviorForInsect(insect);
+			
+			// Handle sprite frame animation for sprite-based insects
+			let config = spriteConfigs[insect.insectType];
+			if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
+				insect.frameCounter++;
+				// Use movement-based animation speed
+				let speed = insect.isMoving ? config.animationSpeed : config.idleSpeed;
+				if (insect.frameCounter >= (60 / speed)) {
+					insect.currentFrame = (insect.currentFrame + 1) % config.totalFrames;
+					insect.frameCounter = 0;
+				}
+			}
+			
+			// Calculate movement speed for animation purposes
+			insect.movementSpeed = sqrt(insect.velocityX * insect.velocityX + insect.velocityY * insect.velocityY);
+			insect.isMoving = insect.movementSpeed > 0.5;
+			
+			// Draw the insect with FULL ANIMATIONS restored
+			drawAdvancedInsect(insect);
+		}
+		
+		// Update admin interface
+		updateInsectCount();
+		
+		// Performance indicator
+		fill(100, 255, 100, 100);
+		textAlign(LEFT, BOTTOM);
+		textSize(12);
+		text(`FPS: ${Math.round(frameRate())}`, 20, windowHeight - 20);
+	}
+
+	function drawAdvancedInsect(insect) {
+		// Calculate natural movement transforms (including butterfly wing flapping)
+		let transforms = calculateNaturalMovementForInsect(insect);
+		
+		// If we have realistic data from customer, blend it with calculated transforms
+		if (insect.realisticData) {
+			transforms.rotation = insect.realisticData.bodyTilt || transforms.rotation;
+		}
+		
+		push();
+		
+		// Apply base position and EXACT rotation from customer
+		translate(insect.x, insect.y);
+		// The customer sends rads with +90 degrees already included, so use it directly
+		rotate(insect.rads);
+		
+		// Apply natural movement transformations (including butterfly wing flapping)
+		translate(transforms.translateX, transforms.translateY);
+		rotate(transforms.rotation);
+		scale(transforms.scaleX, transforms.scaleY);
+		
+		// Antennae effect
+		let antennaeAngle = insect.realisticData?.antennaeAngle || (insect.antennaeAngle * 0.3);
+		rotate(antennaeAngle);
+
+		// Draw 3D legs for beetles using customer's leg data
+		if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && 
+			insect.legData) {
+			
+			push();
+			// Reset transformations for leg drawing
+			rotate(-antennaeAngle);
+			scale(1/transforms.scaleX, 1/transforms.scaleY);
+			rotate(-transforms.rotation);
+			translate(-transforms.translateX, -transforms.translateY);
+			rotate(-insect.rads);
+			translate(-insect.x, -insect.y);
+			
+			// Draw legs using customer's exact leg data - subtract 90 degrees for leg coordinate system
+			drawBeetleLegsForInsect(insect, insect.x, insect.y, insect.rads - radians(90), insect.legData);
+			
+			pop();
+		}
+
+		// Draw the main insect sprite
+		let currentImg = getCurrentFrameForInsect(insect);
+		let imageToUse = currentImg || insect.img;
+		
+		// Apply tint only if customer's color is available
+		if (insect.spriteTint && insect.spriteTint.length === 3) {
+			tint(insect.spriteTint[0], insect.spriteTint[1], insect.spriteTint[2]);
+		} else {
+			noTint(); // No tint until customer color is received
+		}
+		
+		imageMode(CENTER);
+		image(imageToUse, 0, 0, insect.size, insect.size);
+		noTint();
+		
+		pop();
+		
+		// Draw insect ID label for admin
+		push();
+		fill(255, 255, 0, 180);
+		textAlign(CENTER, CENTER);
+		textSize(10);
+		text(insect.id.slice(-4), insect.x, insect.y - insect.size/2 - 15);
+		pop();
+	}
+
+	// Update status immediately when page loads
+	$(document).ready(function() {
+		updateStatus('legs-status', 'Ready', '#00ff88');
+		updateStatus('sync-status', 'Mirroring Customer', '#00aaff');
+		console.log('🚀 Advanced Admin interface ready');
+	});
