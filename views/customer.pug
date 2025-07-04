@@ -24,6 +24,19 @@ script(type='text/javascript').
   let imgUrl
   let canvas
   var idleTime = 0;
+ // Add after variable declarations
+  var beetleFrameOffsets = [
+    [0, 0],   // Frame 0
+    [2, 1],   // Frame 1
+    [1, 0],   // Frame 2
+    [0, 2],   // Frame 3
+    [-1, 1],  // Frame 4
+    [1, -1],  // Frame 5
+    [0, 0]    // Frame 6
+  ];
+  // Fix for animation timing
+  var lastFrameTime = null;
+  var deltaTime = 16.67; // Default to ~60fps
 
   // Random color tint for this user (not black)
   let spriteTint;
@@ -501,6 +514,8 @@ script(type='text/javascript').
       let frameX = (i % config.framesX) * config.frameWidth;
       let frameY = Math.floor(i / config.framesX) * config.frameHeight;
       let frameGraphics = createGraphics(config.frameWidth, config.frameHeight);
+      // Ensure transparency: clear the buffer
+      frameGraphics.clear();
       frameGraphics.copy(spriteSheet, frameX, frameY, config.frameWidth, config.frameHeight, 0, 0, config.frameWidth, config.frameHeight);
       spriteFrames[i] = frameGraphics;
     }
@@ -510,34 +525,32 @@ script(type='text/javascript').
   function updateRealisticBehavior() {
     var config = spriteConfigs[insectType];
     if (!config) return;
-
-    stateTimer++;
-    animationFrame++;
-
+    var timeScale = deltaTime / 16.67;
+    stateTimer += timeScale;
+    animationFrame += timeScale;
     // Calculate acceleration for realistic physics
     acceleration.x = velocityX - lastVelocityX;
     acceleration.y = velocityY - lastVelocityY;
     lastVelocityX = velocityX;
     lastVelocityY = velocityY;
-
     if (config.useSpriteSheet && insectType.includes('bee')) {
-      updateBeePhysics(config);
+      updateBeePhysics(config, timeScale);
     } else if (config.useSpriteSheet && (insectType.includes('beetle') || insectType.includes('weavil'))) {
-      updateBeetlePhysics(config);
+      updateBeetlePhysics(config, timeScale);
     }
   }
 
-  function updateBeePhysics(config) {
+  function updateBeePhysics(config, timeScale) {
     // Realistic bee hovering with micro-instabilities
-    wingPhase += config.wingBeatFreq * 0.1;
+    wingPhase += config.wingBeatFreq * 0.1 * timeScale;
     
     // Wing beat creates lift and slight instability
     var liftForce = sin(wingPhase) * config.liftCoefficient;
     var wingDownstroke = sin(wingPhase) > 0;
     
     // Hovering instability (bees can't hover perfectly)
-    hoverOffset.x += (noise(animationFrame * 0.01) - 0.5) * config.hoverJitter;
-    hoverOffset.y += (noise(animationFrame * 0.01 + 100) - 0.5) * config.hoverJitter;
+    hoverOffset.x += (noise(animationFrame * 0.01) - 0.5) * config.hoverJitter * timeScale;
+    hoverOffset.y += (noise(animationFrame * 0.01 + 100) - 0.5) * config.hoverJitter * timeScale;
     
     // Dampen hover offset
     hoverOffset.x *= 0.95;
@@ -557,11 +570,11 @@ script(type='text/javascript').
     }
   }
 
-  function updateBeetlePhysics(config) {
+  function updateBeetlePhysics(config, timeScale) {
     if (isMoving) {
       // REALISTIC BEETLE WALKING - Clean and smooth
       
-      var realWalkSpeed = movementSpeed * 0.12;
+      var realWalkSpeed = movementSpeed * 0.12 * timeScale;
       walkPhase += realWalkSpeed;
       
       var totalCycleTime = config.walkCycleLength * 60;
@@ -829,14 +842,14 @@ script(type='text/javascript').
     push();
     translate(0, groundLevel);
     
-    // Ground grid with perspective
-    stroke(100, 100, 100, 80);
+    // Ground grid with perspective (HIDDEN)
+    stroke(100, 100, 100, 0); // fully transparent
     strokeWeight(1);
     var gridSize = 10;
     var gridLines = Math.floor(size / gridSize);
     
     for (let i = -gridLines; i <= gridLines; i++) {
-      var lineAlpha = 80 - Math.abs(i) * 8; // Fade distant lines
+      var lineAlpha = 0; // Hide all lines
       if (lineAlpha > 0) {
         stroke(100, 100, 100, lineAlpha);
         line(i * gridSize, -size, i * gridSize, size);
@@ -844,16 +857,16 @@ script(type='text/javascript').
       }
     }
     
-    // Ground surface highlight
-    fill(120, 120, 120, 30);
+    // Ground surface highlight (HIDDEN)
+    fill(120, 120, 120, 0);
     noStroke();
-    ellipse(0, 0, size * 1.5, size * 0.8); // Oval ground patch
+    ellipse(0, 0, size * 1.5, size * 0.8); // Oval ground patch (invisible)
     
-    // Simple ground texture
+    // Simple ground texture (HIDDEN)
     for (let i = 0; i < 20; i++) {
       var texX = random(-size * 0.8, size * 0.8);
       var texY = random(-size * 0.6, size * 0.6);
-      var texAlpha = 25 - (Math.abs(texX) + Math.abs(texY)) / size * 15;
+      var texAlpha = 0;
       if (texAlpha > 0) {
         fill(80, 60, 40, texAlpha);
         circle(texX, texY, random(2, 4));
@@ -1124,51 +1137,45 @@ script(type='text/javascript').
 
   function updateSmoothMovement() {
     var config = spriteConfigs[insectType] || generateConfig(insectType) || spriteConfigs.yellow_bee;
-
+    var timeScale = deltaTime / 16.67;
     var followDistance = 50;
     var dx = targetX - x;
     var dy = targetY - y;
     var distanceToTarget = sqrt(dx * dx + dy * dy);
-    
     if (distanceToTarget < followDistance) {
       var angle = atan2(dy, dx);
       var adjustedTargetX = targetX - cos(angle) * (followDistance - distanceToTarget);
       var adjustedTargetY = targetY - sin(angle) * (followDistance - distanceToTarget);
-      smoothTargetX = smoothLerp(smoothTargetX, adjustedTargetX, 0.08);
-      smoothTargetY = smoothLerp(smoothTargetY, adjustedTargetY, 0.08);
+      smoothTargetX = smoothLerp(smoothTargetX, adjustedTargetX, 0.08 * timeScale);
+      smoothTargetY = smoothLerp(smoothTargetY, adjustedTargetY, 0.08 * timeScale);
     } else {
-      smoothTargetX = smoothLerp(smoothTargetX, targetX, 0.12);
-      smoothTargetY = smoothLerp(smoothTargetY, targetY, 0.12);
+      smoothTargetX = smoothLerp(smoothTargetX, targetX, 0.12 * timeScale);
+      smoothTargetY = smoothLerp(smoothTargetY, targetY, 0.12 * timeScale);
     }
-
     dx = smoothTargetX - x;
     dy = smoothTargetY - y;
     var distance = sqrt(dx * dx + dy * dy);
-
     if (distance > 1) {
       dx /= distance;
       dy /= distance;
       var accelerationScale = min(distance / 100, 1);
-      velocityX += dx * config.acceleration * accelerationScale;
-      velocityY += dy * config.acceleration * accelerationScale;
-
+      velocityX += dx * config.acceleration * accelerationScale * timeScale;
+      velocityY += dy * config.acceleration * accelerationScale * timeScale;
       var speed = sqrt(velocityX * velocityX + velocityY * velocityY);
       if (speed > config.maxSpeed) {
         velocityX = (velocityX / speed) * config.maxSpeed;
         velocityY = (velocityY / speed) * config.maxSpeed;
       }
     }
-
-    velocityX *= config.friction;
-    velocityY *= config.friction;
-    x += velocityX;
-    y += velocityY;
-
+    velocityX *= Math.pow(config.friction, timeScale);
+    velocityY *= Math.pow(config.friction, timeScale);
+    x += velocityX * timeScale;
+    y += velocityY * timeScale;
     var desiredAngle = atan2(velocityY, velocityX);
     var angleDiff = desiredAngle - angle1;
     if (angleDiff > PI) angleDiff -= TWO_PI;
     if (angleDiff < -PI) angleDiff += TWO_PI;
-    var angleEasing = map(movementSpeed, 0, config.maxSpeed, 0.05, 0.15);
+    var angleEasing = map(movementSpeed, 0, config.maxSpeed, 0.05, 0.15) * timeScale;
     angle1 += angleDiff * angleEasing;
   }
 
@@ -1299,13 +1306,20 @@ script(type='text/javascript').
   }
 
   function draw() {
+    var now = performance.now();
+    if (lastFrameTime === null) lastFrameTime = now;
+    deltaTime = now - lastFrameTime;
+    lastFrameTime = now;
+    // Cap deltaTime to avoid huge jumps
+    if (deltaTime > 100) deltaTime = 100;
+
     if (imgLoaded) {
       updateSmoothMovement();
       // Animate sprite frames for sprite-based insects
       var config = spriteConfigs[insectType] || generateConfig(insectType) || spriteConfigs.yellow_bee;
       if (config && config.useSpriteSheet && spriteFrames.length > 0) {
         // Advance frame based on animation speed
-        frameCounter++;
+        frameCounter += deltaTime / 16.67;
         var speed = isMoving ? config.animationSpeed : config.idleSpeed;
         if (frameCounter >= (60 / speed)) {
           // Beetle walk cycle is driven by physics, not a simple timer
@@ -1364,23 +1378,20 @@ script(type='text/javascript').
       rotate(antennaeAngle * 0.3);
 
       // DRAW VISIBLE LEG MOVEMENTS for beetles
-      if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
-        var legConfig = getLegConfiguration(currentFrame, 0);
-        
-        push(); // Save current transform
-        // Reset transformations for leg drawing to get clean positions
-        rotate(-antennaeAngle * 0.3);
-        scale(1/transforms.scaleX, 1/transforms.scaleY);
-        rotate(-transforms.rotation);
-        translate(-transforms.translateX, -transforms.translateY);
-        rotate(-(vara + radians(90)));
-        translate(-varx, -vary);
-        
-        // Draw legs at absolute position with beetle's angle
-        drawBeetleLegs(varx, vary, vara, legConfig);
-        
-        pop(); // Restore transform for main sprite
-      }
+      // if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
+      //   var legConfig = getLegConfiguration(currentFrame, 0);
+      //   push(); // Save current transform
+      //   // Reset transformations for leg drawing to get clean positions
+      //   rotate(-antennaeAngle * 0.3);
+      //   scale(1/transforms.scaleX, 1/transforms.scaleY);
+      //   rotate(-transforms.rotation);
+      //   translate(-transforms.translateX, -transforms.translateY);
+      //   rotate(-(vara + radians(90)));
+      //   translate(-varx, -vary);
+      //   // Draw legs at absolute position with beetle's angle
+      //   drawBeetleLegs(varx, vary, vara, legConfig);
+      //   pop(); // Restore transform for main sprite
+      // }
 
       var screenVarX = varx - 45;
       var screenVarY = vary - 45;
@@ -1416,6 +1427,11 @@ script(type='text/javascript').
         size = 85;
       }
       
+      // Apply per-frame offset for beetle
+      if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
+        var offset = beetleFrameOffsets[currentFrame] || [0, 0];
+        translate(offset[0], offset[1]);
+      }
       // Apply tint before drawing the sprite
       if (spriteTint) {
         tint(spriteTint[0], spriteTint[1], spriteTint[2]);
@@ -1450,3 +1466,5 @@ body
         }
       }, 5000);
     });
+
+ 

@@ -21,6 +21,16 @@ script(src='/static/js/p5.js' charset='utf-8')
 script(src='https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js')
 script(type='text/javascript').
 	// ===== ADVANCED ADMIN INSECT VIEWER - FULL PHYSICS REPLICATION =====
+	// Add beetleFrameOffsets for per-frame beetle alignment (copied from customer.pug)
+	var beetleFrameOffsets = [
+	  [0, 0],   // Frame 0
+	  [2, 1],   // Frame 1
+	  [1, 0],   // Frame 2
+	  [0, 2],   // Frame 3
+	  [-1, 1],  // Frame 4
+	  [1, -1],  // Frame 5
+	  [0, 0]    // Frame 6
+	];
 	const socket = io();
 	let insects = {};
 	let globalAnimationFrame = 0;
@@ -366,6 +376,7 @@ script(type='text/javascript').
 			let frameX = (i % config.framesX) * config.frameWidth;
 			let frameY = Math.floor(i / config.framesX) * config.frameHeight;
 			let frameGraphics = createGraphics(config.frameWidth, config.frameHeight);
+			frameGraphics.clear();
 			frameGraphics.copy(insect.spriteSheet, frameX, frameY, config.frameWidth, config.frameHeight, 
 							 0, 0, config.frameWidth, config.frameHeight);
 			insect.spriteFrames[i] = frameGraphics;
@@ -691,35 +702,31 @@ script(type='text/javascript').
 	function drawGroundPlane(groundLevel, size) {
 		push();
 		translate(0, groundLevel);
-		
-		stroke(100, 100, 100, 80);
+		// Make grid fully transparent (hidden)
+		stroke(100, 100, 100, 0); // fully transparent
 		strokeWeight(1);
-		let gridSize = 10;
-		let gridLines = Math.floor(size / gridSize);
-		
+		var gridSize = 10;
+		var gridLines = Math.floor(size / gridSize);
 		for (let i = -gridLines; i <= gridLines; i++) {
-			let lineAlpha = 80 - Math.abs(i) * 8;
+			var lineAlpha = 0; // Hide all lines
 			if (lineAlpha > 0) {
 				stroke(100, 100, 100, lineAlpha);
 				line(i * gridSize, -size, i * gridSize, size);
 				line(-size, i * gridSize, size, i * gridSize);
 			}
 		}
-		
-		fill(120, 120, 120, 30);
+		fill(120, 120, 120, 0);
 		noStroke();
-		ellipse(0, 0, size * 1.5, size * 0.8);
-		
+		ellipse(0, 0, size * 1.5, size * 0.8); // Oval ground patch (invisible)
 		for (let i = 0; i < 20; i++) {
-			let texX = random(-size * 0.8, size * 0.8);
-			let texY = random(-size * 0.6, size * 0.6);
-			let texAlpha = 25 - (Math.abs(texX) + Math.abs(texY)) / size * 15;
+			var texX = random(-size * 0.8, size * 0.8);
+			var texY = random(-size * 0.6, size * 0.6);
+			var texAlpha = 0;
 			if (texAlpha > 0) {
 				fill(80, 60, 40, texAlpha);
 				circle(texX, texY, random(2, 4));
 			}
 		}
-		
 		pop();
 	}
 
@@ -1113,65 +1120,46 @@ script(type='text/javascript').
 	function drawAdvancedInsect(insect) {
 		// Calculate natural movement transforms (including butterfly wing flapping)
 		let transforms = calculateNaturalMovementForInsect(insect);
-		
-		// If we have realistic data from customer, blend it with calculated transforms
 		if (insect.realisticData) {
 			transforms.rotation = insect.realisticData.bodyTilt || transforms.rotation;
 		}
-		
 		push();
-		
-		// Apply base position and EXACT rotation from customer
 		translate(insect.x, insect.y);
-		// The customer sends rads with +90 degrees already included, so use it directly
 		rotate(insect.rads);
-		
-		// Apply natural movement transformations (including butterfly wing flapping)
 		translate(transforms.translateX, transforms.translateY);
 		rotate(transforms.rotation);
 		scale(transforms.scaleX, transforms.scaleY);
-		
-		// Antennae effect
 		let antennaeAngle = insect.realisticData?.antennaeAngle || (insect.antennaeAngle * 0.3);
 		rotate(antennaeAngle);
-
-		// Draw 3D legs for beetles using customer's leg data
-		if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && 
-			insect.legData) {
-			
-			push();
-			// Reset transformations for leg drawing
-			rotate(-antennaeAngle);
-			scale(1/transforms.scaleX, 1/transforms.scaleY);
-			rotate(-transforms.rotation);
-			translate(-transforms.translateX, -transforms.translateY);
-			rotate(-insect.rads);
-			translate(-insect.x, -insect.y);
-			
-			// Draw legs using customer's exact leg data - subtract 90 degrees for leg coordinate system
-			drawBeetleLegsForInsect(insect, insect.x, insect.y, insect.rads - radians(90), insect.legData);
-			
-			pop();
+		// Comment out 3D leg drawing for beetles/weavils (match customer view)
+		// if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && 
+		// 	insect.legData) {
+		// 	push();
+		// 	rotate(-antennaeAngle);
+		// 	scale(1/transforms.scaleX, 1/transforms.scaleY);
+		// 	rotate(-transforms.rotation);
+		// 	translate(-transforms.translateX, -transforms.translateY);
+		// 	rotate(-insect.rads);
+		// 	translate(-insect.x, -insect.y);
+		// 	drawBeetleLegsForInsect(insect, insect.x, insect.y, insect.rads - radians(90), insect.legData);
+		// 	pop();
+		// }
+		// Apply per-frame offset for beetle/weavil
+		if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && insect.spriteFrames.length > 0) {
+			var offset = beetleFrameOffsets[insect.currentFrame] || [0, 0];
+			translate(offset[0], offset[1]);
 		}
-
-		// Draw the main insect sprite
 		let currentImg = getCurrentFrameForInsect(insect);
 		let imageToUse = currentImg || insect.img;
-		
-		// Apply tint only if customer's color is available
 		if (insect.spriteTint && insect.spriteTint.length === 3) {
 			tint(insect.spriteTint[0], insect.spriteTint[1], insect.spriteTint[2]);
 		} else {
-			noTint(); // No tint until customer color is received
+			noTint();
 		}
-		
 		imageMode(CENTER);
 		image(imageToUse, 0, 0, insect.size, insect.size);
 		noTint();
-		
 		pop();
-		
-		// Draw insect ID label for admin
 		push();
 		fill(255, 255, 0, 180);
 		textAlign(CENTER, CENTER);

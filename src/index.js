@@ -41,8 +41,7 @@ socket(io)
 
 // render landing page
 app.get('/', async (req, res, next) => {
-  const filePath = path.resolve(__dirname, "../views/index.html")
-  res.sendFile(filePath);
+  return res.render('index.pug');
 })
 
 // render Customer page
@@ -53,12 +52,6 @@ app.get('/customer', async (req, res, next) => {
 // render admin page
 app.get('/admin', async (req, res, next) => {
   return res.render('admin.pug')
-})
-
-// render admin.html page as static HTML
-app.get('/admin-html', async (req, res, next) => {
-  const filePath = path.resolve(__dirname, "../views/admin.html")
-  res.sendFile(filePath);
 })
 
 // Send image file
