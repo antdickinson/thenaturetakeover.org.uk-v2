@@ -54,6 +54,16 @@ app.get('/admin', async (req, res, next) => {
   return res.render('admin.pug')
 })
 
+// render admin2.html
+app.get('/customer2', async (req, res, next) => {
+  return res.render('customer2.pug')
+})
+
+// render admin page
+app.get('/admin2', async (req, res, next) => {
+  return res.render('admin2.pug')
+})
+
 // Send image file
 app.get('/image/:imageName', async (req, res, next) => {
   const filePath = path.resolve(__dirname, "../images/"+req.params.imageName)
