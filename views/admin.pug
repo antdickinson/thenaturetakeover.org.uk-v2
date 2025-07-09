@@ -6,15 +6,15 @@ head
 body
 	#admin-canvas(style='width:100vw;height:100vh;position:fixed;top:0;left:0;z-index:0;')
 	#main.container
-	#admin-info(style='position: fixed; top: 20px; right: 20px; color: white; font-family: Arial; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px; z-index: 1000; backdrop-filter: blur(10px);')
-		h3(style='margin: 0 0 10px 0; font-size: 18px; color: #00ff88;') 🐛 Advanced Admin View
-		p(style='margin: 0 0 5px 0; font-size: 14px;') <span id="insect-count">0</span> insects with full physics
-		p(style='margin: 0 0 5px 0; font-size: 12px; color: #88ff88;') 3D Legs • Realistic Movement • Sprite Animation
-		div(style='margin-top: 10px; font-size: 11px; color: #aaa;')
-			div Physics: <span id="physics-status">Active</span>
-			div Sprites: <span id="sprite-status">Loading</span>
-			div 3D Legs: <span id="legs-status">Enabled</span>
-			div Sync: <span id="sync-status">Mirroring Customer</span>
+	//- #admin-info(style='position: fixed; top: 20px; right: 20px; color: white; font-family: Arial; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px; z-index: 1000; backdrop-filter: blur(10px);')
+	//- 	h3(style='margin: 0 0 10px 0; font-size: 18px; color: #00ff88;') 🐛 Advanced Admin View
+	//- 	p(style='margin: 0 0 5px 0; font-size: 14px;') <span id="insect-count">0</span> insects with full physics
+	//- 	p(style='margin: 0 0 5px 0; font-size: 12px; color: #88ff88;') 3D Legs • Realistic Movement • Sprite Animation
+	//- 	div(style='margin-top: 10px; font-size: 11px; color: #aaa;')
+	//- 		div Physics: <span id="physics-status">Active</span>
+	//- 		div Sprites: <span id="sprite-status">Loading</span>
+	//- 		div 3D Legs: <span id="legs-status">Enabled</span>
+	//- 		div Sync: <span id="sync-status">Mirroring Customer</span>
 
 script(src='/static/js/socket.io.js' charset='utf-8')
 script(src='/static/js/p5.js' charset='utf-8')
