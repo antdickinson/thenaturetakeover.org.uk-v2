@@ -1060,16 +1060,15 @@ script(type='text/javascript').
 		updateStatus('physics-status', 'Ready', '#00ff88');
 	}
 
-	script.
-		function windowResized() {
-			resizeCanvas(windowWidth, windowHeight);
-			// Update all insect target positions for new screen size
-			for (let id in insects) {
-				let insect = insects[id];
-				insect.targetX = (insect.targetX / windowWidth) * windowWidth;
-				insect.targetY = (insect.targetY / windowHeight) * windowHeight;
-			}
+	function windowResized() {
+		resizeCanvas(windowWidth, windowHeight);
+		// Update all insect target positions for new screen size
+		for (let id in insects) {
+			let insect = insects[id];
+			insect.targetX = (insect.targetX / windowWidth) * windowWidth;
+			insect.targetY = (insect.targetY / windowHeight) * windowHeight;
 		}
+	}
 
 	function draw() {
 		background(0);
