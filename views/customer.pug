@@ -572,6 +572,9 @@ script(type='text/javascript').
 
   function updateBeetlePhysics(config, timeScale) {
     if (isMoving) {
+      // Instead of physics-based walk cycle, just advance the frame every draw
+      currentFrame = (currentFrame + 1) % config.totalFrames;
+      // Keep the rest of the body/leg physics if needed
       // REALISTIC BEETLE WALKING - Clean and smooth
       
       var realWalkSpeed = movementSpeed * 0.12 * timeScale;
@@ -1467,4 +1470,7 @@ body
       }, 5000);
     });
 
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
  
