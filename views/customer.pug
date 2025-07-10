@@ -128,11 +128,11 @@ script(type='text/javascript').
     beetle: {
       useSpriteSheet: true, // Whether to use a sprite sheet for animation
       spriteFile: 'beetle_sprite.png', // The filename of the sprite sheet image
-      frameWidth: 120, // The width of a single frame in the sprite sheet
-      frameHeight: 120, // The height of a single frame in the sprite sheet
-      framesX: 3, // The number of frames horizontally in the sprite sheet
-      framesY: 3, // The number of frames vertically in the sprite sheet
-      totalFrames: 7, // The total number of frames in the sprite sheet
+      frameWidth: 150, // The width of a single frame in the sprite sheet
+      frameHeight: 150, // The height of a single frame in the sprite sheet
+      framesX: 7, // The number of frames horizontally in the sprite sheet
+      framesY: 1, // The number of frames vertically in the sprite sheet
+      totalFrames: 5, // The total number of frames in the sprite sheet
       walkCycleLength: 1.5, // The duration of a full walk cycle
       legPhases: [0, 0.5, 0.25, 0.75, 0.125, 0.625], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 6, // The amplitude of the body's side-to-side rocking motion when walking
@@ -152,11 +152,11 @@ script(type='text/javascript').
     weavil: {
       useSpriteSheet: true, // Whether to use a sprite sheet for animation
       spriteFile: 'beetle_sprite.png', // The filename of the sprite sheet image
-      frameWidth: 120, // The width of a single frame in the sprite sheet
-      frameHeight: 120, // The height of a single frame in the sprite sheet
-      framesX: 3, // The number of frames horizontally in the sprite sheet
-      framesY: 3, // The number of frames vertically in the sprite sheet
-      totalFrames: 7, // The total number of frames in the sprite sheet
+      frameWidth: 150, // The width of a single frame in the sprite sheet
+      frameHeight: 150, // The height of a single frame in the sprite sheet
+      framesX: 7, // The number of frames horizontally in the sprite sheet
+      framesY: 1, // The number of frames vertically in the sprite sheet
+      totalFrames: 5, // The total number of frames in the sprite sheet
       walkCycleLength: 1.8, // The duration of a full walk cycle
       legPhases: [0, 0.6, 0.3, 0.9, 0.15, 0.75], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 4, // The amplitude of the body's side-to-side rocking motion when walking
@@ -307,11 +307,11 @@ script(type='text/javascript').
     golden_beetle: {
       useSpriteSheet: true, // Whether to use a sprite sheet for animation
       spriteFile: 'beetle_sprite.png', // The filename of the sprite sheet image
-      frameWidth: 120, // The width of a single frame in the sprite sheet
-      frameHeight: 120, // The height of a single frame in the sprite sheet
-      framesX: 3, // The number of frames horizontally in the sprite sheet
-      framesY: 3, // The number of frames vertically in the sprite sheet
-      totalFrames: 7, // The total number of frames in the sprite sheet
+      frameWidth: 150, // The width of a single frame in the sprite sheet
+      frameHeight: 150, // The height of a single frame in the sprite sheet
+      framesX: 7, // The number of frames horizontally in the sprite sheet
+      framesY: 1, // The number of frames vertically in the sprite sheet
+      totalFrames: 5, // The total number of frames in the sprite sheet
       walkCycleLength: 1.5, // The duration of a full walk cycle
       legPhases: [0, 0.5, 0.25, 0.75, 0.125, 0.625], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 6, // The amplitude of the body's side-to-side rocking motion when walking
@@ -331,11 +331,11 @@ script(type='text/javascript').
     weavil: {
       useSpriteSheet: true, // Whether to use a sprite sheet for animation
       spriteFile: 'beetle_sprite.png', // The filename of the sprite sheet image
-      frameWidth: 120, // The width of a single frame in the sprite sheet
-      frameHeight: 120, // The height of a single frame in the sprite sheet
-      framesX: 3, // The number of frames horizontally in the sprite sheet
-      framesY: 3, // The number of frames vertically in the sprite sheet
-      totalFrames: 7, // The total number of frames in the sprite sheet
+      frameWidth: 150, // The width of a single frame in the sprite sheet
+      frameHeight: 150, // The height of a single frame in the sprite sheet
+      framesX: 7, // The number of frames horizontally in the sprite sheet
+      framesY: 1, // The number of frames vertically in the sprite sheet
+      totalFrames: 5, // The total number of frames in the sprite sheet
       walkCycleLength: 1.8, // The duration of a full walk cycle
       legPhases: [0, 0.6, 0.3, 0.9, 0.15, 0.75], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 4, // The amplitude of the body's side-to-side rocking motion when walking
@@ -1378,20 +1378,20 @@ script(type='text/javascript').
       rotate(antennaeAngle * 0.3);
 
       // DRAW VISIBLE LEG MOVEMENTS for beetles
-      // if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
-      //   var legConfig = getLegConfiguration(currentFrame, 0);
-      //   push(); // Save current transform
-      //   // Reset transformations for leg drawing to get clean positions
-      //   rotate(-antennaeAngle * 0.3);
-      //   scale(1/transforms.scaleX, 1/transforms.scaleY);
-      //   rotate(-transforms.rotation);
-      //   translate(-transforms.translateX, -transforms.translateY);
-      //   rotate(-(vara + radians(90)));
-      //   translate(-varx, -vary);
-      //   // Draw legs at absolute position with beetle's angle
-      //   drawBeetleLegs(varx, vary, vara, legConfig);
-      //   pop(); // Restore transform for main sprite
-      // }
+      //-  if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
+      //-    var legConfig = getLegConfiguration(currentFrame, 0);
+      //-    push(); // Save current transform
+      //-    // Reset transformations for leg drawing to get clean positions
+      //-    rotate(-antennaeAngle * 0.3);
+      //-    scale(1/transforms.scaleX, 1/transforms.scaleY);
+      //-    rotate(-transforms.rotation);
+      //-    translate(-transforms.translateX, -transforms.translateY);
+      //-    rotate(-(vara + radians(90)));
+      //-    translate(-varx, -vary);
+      //-    // Draw legs at absolute position with beetle's angle
+      //-    drawBeetleLegs(varx, vary, vara, legConfig);
+      //-    pop(); // Restore transform for main sprite
+      //-  }
 
       var screenVarX = varx - 45;
       var screenVarY = vary - 45;
