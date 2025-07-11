@@ -446,8 +446,6 @@ script(type='text/javascript').
 			let rawFrameIndex = cycleProgress * config.totalFrames;
 			let frameIndex = Math.floor(rawFrameIndex);
 			
-			insect.currentFrame = constrain(frameIndex, 0, config.totalFrames - 1);
-			
 			// Get leg configuration for body response
 			let legConfiguration = getLegConfiguration(insect.currentFrame, 0);
 			
@@ -497,7 +495,6 @@ script(type='text/javascript').
 			insect.walkPhase *= 0.96;
 			insect.bodyWeight = 0.95;
 			insect.bodyTilt *= 0.9;
-			insect.currentFrame = 0;
 			
 			// SETTLED POSITION
 			insect.hoverOffset.y = insect.bodyWeight * 2;
@@ -1089,13 +1086,17 @@ script(type='text/javascript').
 			// Handle sprite frame animation for sprite-based insects
 			let config = spriteConfigs[insect.insectType];
 			if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
-				insect.frameCounter++;
-				// Use movement-based animation speed
-				let speed = insect.isMoving ? config.animationSpeed : config.idleSpeed;
-				if (insect.frameCounter >= (60 / speed)) {
-					insect.currentFrame = (insect.currentFrame + 1) % config.totalFrames;
-					insect.frameCounter = 0;
+				// Only advance frames for non-beetle/non-weavil insects
+				if (!(insect.insectType.includes('beetle') || insect.insectType.includes('weavil'))) {
+					insect.frameCounter++;
+					// Use movement-based animation speed
+					let speed = insect.isMoving ? config.animationSpeed : config.idleSpeed;
+					if (insect.frameCounter >= (60 / speed)) {
+						insect.currentFrame = (insect.currentFrame + 1) % config.totalFrames;
+						insect.frameCounter = 0;
+					}
 				}
+				// For beetles/weavils, currentFrame is set only from the socket (customer)
 			}
 			
 			// Calculate movement speed for animation purposes

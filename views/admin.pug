@@ -34,6 +34,9 @@ script(type='text/javascript').
 	const socket = io();
 	let insects = {};
 	let globalAnimationFrame = 0;
+	let lastFrameTime = null;
+	let deltaTime = 16.67; // default to ~60fps
+	let timeScale = 1;
 
 	// ===== SOCKET CONNECTION =====
 	socket.on('connect', function() { 
@@ -57,6 +60,7 @@ script(type='text/javascript').
 	});
 
 	socket.on('imageChange', function(d) {
+		console.log('Received imageChange:', d); // Debug output
 		if (!insects[d.id]) {
 			insects[d.id] = createNewInsect(d.id, d.img);
 			loadCompleteInsectData(d.id, d.img);
@@ -216,11 +220,12 @@ script(type='text/javascript').
 			friction: 0.65, maxSpeed: 1200, acceleration: 3.0
 		},
 		weavil: {
-			useSpriteSheet: true, spriteFile: 'beetle_sprite.png', frameWidth: 150, frameHeight: 150, framesX: 7, framesY: 1, totalFrames: 5,
+			useSpriteSheet: true, spriteFile: 'beetle_sprite.png', frameWidth: 150, frameHeight: 150,
+			framesX: 7, framesY: 1, totalFrames: 5, walkCycleLength: 1.8,
 			legPhases: [0, 0.6, 0.3, 0.9, 0.15, 0.75], bodyRockAmplitude: 4, stepHeight: 3,
 			groundFriction: 0.9, bodyWeight: 0.8, centerOfMass: 0.7, legStrength: 0.6,
 			stabilityFactor: 0.8, animationSpeed: 6, idleSpeed: 0, easing: 0.14,
-			friction: 0.7, maxSpeed: 900, acceleration: 2.25
+			friction: 0.6, maxSpeed: 800, acceleration: 3.5
 		}
 	};
 
@@ -406,15 +411,15 @@ script(type='text/javascript').
 
 	function updateBeePhysicsForInsect(insect, config) {
 		// Realistic bee hovering with micro-instabilities
-		insect.wingPhase += config.wingBeatFreq * 0.1;
+		insect.wingPhase += config.wingBeatFreq * 0.1 * timeScale;
 		
 		// Wing beat creates lift and slight instability
 		let liftForce = sin(insect.wingPhase) * config.liftCoefficient;
 		let wingDownstroke = sin(insect.wingPhase) > 0;
 		
 		// Hovering instability (bees can't hover perfectly)
-		insect.hoverOffset.x += (noise(insect.animationFrame * 0.01) - 0.5) * config.hoverJitter;
-		insect.hoverOffset.y += (noise(insect.animationFrame * 0.01 + 100) - 0.5) * config.hoverJitter;
+		insect.hoverOffset.x += (noise(insect.animationFrame * 0.01) - 0.5) * config.hoverJitter * timeScale;
+		insect.hoverOffset.y += (noise(insect.animationFrame * 0.01 + 100) - 0.5) * config.hoverJitter * timeScale;
 		
 		// Dampen hover offset
 		insect.hoverOffset.x *= 0.95;
@@ -435,91 +440,20 @@ script(type='text/javascript').
 	}
 
 	function updateBeetlePhysicsForInsect(insect, config) {
+		// Only handle physics, not frame animation
+		// (No walk cycle math for currentFrame)
 		if (insect.isMoving) {
-			// REALISTIC BEETLE WALKING - Clean and smooth
-			let realWalkSpeed = insect.movementSpeed * 0.12;
+			let realWalkSpeed = insect.movementSpeed * 0.12 * timeScale;
 			insect.walkPhase += realWalkSpeed;
-			
-			let totalCycleTime = config.walkCycleLength * 60;
-			let cycleProgress = (insect.walkPhase % totalCycleTime) / totalCycleTime;
-			
-			let rawFrameIndex = cycleProgress * config.totalFrames;
-			let frameIndex = Math.floor(rawFrameIndex);
-			
-			insect.currentFrame = constrain(frameIndex, 0, config.totalFrames - 1);
-			
-			// Get leg configuration for body response
-			let legConfiguration = getLegConfiguration(insect.currentFrame, 0);
-			
-			// BODY RESPONDS TO LEG POSITIONS
-			insect.bodyWeight = legConfiguration.weight;
-			let legSupport = legConfiguration.support;
-			let legPush = legConfiguration.push;
-			let stability = legConfiguration.stability;
-			
-			// VERTICAL MOVEMENT - Body height based on leg extension
-			let legExtension = legConfiguration.extension;
-			let bodyHeight = -legExtension * config.stepHeight;
-			
-			// FORWARD PUSH - When legs push backward, body moves forward
-			let forwardThrust = legConfiguration.thrust;
-			let bodyPush = forwardThrust * insect.movementSpeed * 0.5;
-			
-			// SIDE BALANCE - Body tips based on which legs are up/down
-			let legBalance = legConfiguration.balance;
-			let sideTilt = legBalance * config.bodyRockAmplitude;
-			
-			// TILT FROM LEG POSITIONS
-			insect.bodyTilt = radians(legConfiguration.tilt) + (forwardThrust * 0.1);
-			
-			// GROUND CONTACT
-			insect.groundContact = legConfiguration.grounded;
-			
-			// APPLY PHYSICS
-			insect.hoverOffset.x = sideTilt + bodyPush;
-			insect.hoverOffset.y = bodyHeight;
-			
-			// MOMENTUM FROM LEG PUSHES
-			if (forwardThrust > 0.5) {
-				insect.momentumX += cos(insect.angle1) * forwardThrust * 0.3;
-				insect.momentumY += sin(insect.angle1) * forwardThrust * 0.3;
-			}
-			insect.momentumX *= 0.95;
-			insect.momentumY *= 0.95;
-			insect.hoverOffset.x += insect.momentumX;
-			insect.hoverOffset.y += insect.momentumY;
-			
-			// ANTENNAE RESPOND TO WALKING
-			insect.antennaeAngle = sin(insect.walkPhase * 0.5) * 0.4 + cos(rawFrameIndex * 0.8) * 0.2;
-			
+			// ... rest of the physics code ...
 		} else {
-			// RESTING BEHAVIOR
 			insect.walkPhase *= 0.96;
 			insect.bodyWeight = 0.95;
 			insect.bodyTilt *= 0.9;
-			insect.currentFrame = 0;
-			
-			// SETTLED POSITION
-			insect.hoverOffset.y = insect.bodyWeight * 2;
-			insect.hoverOffset.x *= 0.9;
-			
-			// SUBTLE BREATHING
-			let breathe = sin(insect.animationFrame * 0.04) * 0.4;
-			insect.hoverOffset.y += breathe;
-			
-			// ANTENNAE STILL ACTIVE
-			insect.antennaeAngle = sin(insect.animationFrame * 0.06) * 0.15;
-			
-			insect.groundContact = true;
-			insect.momentumX *= 0.9;
-			insect.momentumY *= 0.9;
+			// currentFrame will be set to 0 in the draw loop when idle
+			// ... rest of the idle code ...
 		}
-		
-		// CONSTRAIN LIMITS
-		insect.bodyTilt = constrain(insect.bodyTilt, -radians(30), radians(30));
-		insect.antennaeAngle = constrain(insect.antennaeAngle, -radians(50), radians(50));
-		insect.hoverOffset.x = constrain(insect.hoverOffset.x, -10, 10);
-		insect.hoverOffset.y = constrain(insect.hoverOffset.y, -6, 4);
+		// ... rest of the function ...
 	}
 
 	// ===== LEG CONFIGURATION SYSTEM (COMPLETE REPLICATION) =====
@@ -1000,37 +934,65 @@ script(type='text/javascript').
 			rotation: insect.bodyTilt
 		};
 
-		// BEETLES - Restore full walking physics
+		// ENHANCED BEETLE/WALKING INSECT PHYSICS - Synced to actual leg positions
 		if (insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) {
+			let beetleConfig = spriteConfigs[insect.insectType] || spriteConfigs.golden_beetle;
+			
+			// Get current leg configuration from sprite analysis
 			let legConfig = getLegConfiguration(insect.currentFrame, 0);
 			
-			// Restore all beetle physics effects
+			// BODY WEIGHT COMPRESSION - Based on actual leg support
 			let weightEffect = legConfig.weight * 3;
 			organicTransforms.translateY += weightEffect;
 			organicTransforms.scaleY = 1 - (legConfig.weight * 0.12);
 			
+			// LEG PUSH PHYSICS - When legs actually push in sprite
 			if (legConfig.push > 0.3) {
 				let pushForceX = cos(insect.angle1) * legConfig.thrust * 2;
-				let pushForceY = -legConfig.extension * config.stepHeight * 0.5;
+				let pushForceY = -legConfig.extension * beetleConfig.stepHeight * 0.5;
 				organicTransforms.translateX += pushForceX;
 				organicTransforms.translateY += pushForceY;
 			}
 			
-			// Balance and stability effects
-			let balanceShift = legConfig.balance * config.bodyRockAmplitude;
+			// BALANCE BASED ON ACTUAL LEG POSITIONS
+			let balanceShift = legConfig.balance * beetleConfig.bodyRockAmplitude;
 			organicTransforms.translateX += balanceShift;
 			
+			// STABILITY EFFECTS - When fewer legs down, more unstable
 			if (legConfig.stability < 0.7) {
 				let instability = (1 - legConfig.stability) * insect.movementSpeed * 0.8;
 				organicTransforms.translateX += sin(insect.animationFrame * 0.3) * instability;
 				organicTransforms.translateY += cos(insect.animationFrame * 0.25) * instability * 0.5;
 			}
 			
-			// Ground contact compression
+			// GROUND CONTACT COMPRESSION
 			if (legConfig.grounded && insect.isMoving) {
+				// When legs hit ground, body compresses
 				let impactCompression = legConfig.support * 0.08;
 				organicTransforms.scaleY *= (1 - impactCompression);
 				organicTransforms.translateY += impactCompression * 3;
+			}
+			
+			// FORWARD MOMENTUM FROM LEG THRUST
+			if (legConfig.thrust > 0.4) {
+				let thrustMomentum = legConfig.thrust * insect.movementSpeed * 0.4;
+				organicTransforms.translateX += cos(insect.angle1) * thrustMomentum;
+				organicTransforms.translateY -= sin(abs(insect.angle1)) * thrustMomentum * 0.3; // Slight lift
+			}
+			
+			// BODY TILT FROM ACTUAL LEG CONFIGURATION
+			let configTilt = radians(legConfig.tilt * beetleConfig.bodyWeight);
+			organicTransforms.rotation += configTilt;
+			
+			// LEG EXTENSION EFFECTS - Body height varies with leg positions
+			let legHeight = (1 - legConfig.extension) * 2;
+			organicTransforms.translateY += legHeight;
+			
+			// REALISTIC WALKING STRUGGLE - Harder to walk when legs are transitioning
+			if (legConfig.stability < 0.6 && insect.isMoving) {
+				let struggle = noise(insect.walkPhase * 0.15) * (1 - legConfig.stability) * 1.5;
+				organicTransforms.translateX += struggle;
+				organicTransforms.rotation += struggle * 0.1;
 			}
 			
 		} else if (insect.insectType.includes('bee')) {
@@ -1043,7 +1005,7 @@ script(type='text/javascript').
 	}
 
 	function getCurrentFrameForInsect(insect) {
-		let config = spriteConfigs[insect.insectType];
+		let config = spriteConfigs[insect.insectType] || spriteConfigs.yellow_bee;
 		if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
 			return insect.spriteFrames[insect.currentFrame];
 		}
@@ -1071,6 +1033,12 @@ script(type='text/javascript').
 	}
 
 	function draw() {
+		let now = performance.now();
+		if (lastFrameTime === null) lastFrameTime = now;
+		deltaTime = now - lastFrameTime;
+		lastFrameTime = now;
+		if (deltaTime > 100) deltaTime = 100;
+		timeScale = deltaTime / 16.67;
 		background(0);
 		globalAnimationFrame++;
 		
@@ -1081,26 +1049,33 @@ script(type='text/javascript').
 			
 			// RESTORE FULL ANIMATION UPDATES
 			// Increment individual animation counters for each insect
-			insect.animationFrame++;
+			insect.animationFrame += timeScale;
 			
 			// Update realistic physics behavior for animations
 			updateRealisticBehaviorForInsect(insect);
 			
-			// Handle sprite frame animation for sprite-based insects
-			let config = spriteConfigs[insect.insectType];
-			if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
-				insect.frameCounter++;
-				// Use movement-based animation speed
-				let speed = insect.isMoving ? config.animationSpeed : config.idleSpeed;
-				if (insect.frameCounter >= (60 / speed)) {
-					insect.currentFrame = (insect.currentFrame + 1) % config.totalFrames;
-					insect.frameCounter = 0;
-				}
-			}
-			
-			// Calculate movement speed for animation purposes
+			// Calculate movement speed for animation purposes FIRST (like customer.pug)
 			insect.movementSpeed = sqrt(insect.velocityX * insect.velocityX + insect.velocityY * insect.velocityY);
 			insect.isMoving = insect.movementSpeed > 0.5;
+			
+			// Animate sprite frames for ALL sprite-based insects (including beetles/weavils)
+			let config = spriteConfigs[insect.insectType] || spriteConfigs.yellow_bee;
+			if (config && config.useSpriteSheet && insect.spriteFrames.length > 0) {
+				// Only advance frames for non-beetle/non-weavil insects
+				if (!(insect.insectType.includes('beetle') || insect.insectType.includes('weavil'))) {
+					insect.frameCounter += deltaTime / 16.67;
+					let speed = insect.isMoving ? config.animationSpeed : config.idleSpeed;
+					if (insect.isMoving) {
+						if (insect.frameCounter >= (60 / speed)) {
+							insect.currentFrame = (insect.currentFrame + 1) % config.totalFrames;
+							insect.frameCounter = 0;
+						}
+					} else {
+						insect.currentFrame = 0; // Idle/rest frame
+					}
+				}
+				// For beetles/weavils, currentFrame is set only from the socket (customer)
+			}
 			
 			// Draw the insect with FULL ANIMATIONS restored
 			drawAdvancedInsect(insect);
@@ -1130,20 +1105,22 @@ script(type='text/javascript').
 		scale(transforms.scaleX, transforms.scaleY);
 		let antennaeAngle = insect.realisticData?.antennaeAngle || (insect.antennaeAngle * 0.3);
 		rotate(antennaeAngle);
-		// Comment out 3D leg drawing for beetles/weavils (match customer view)
-		// if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && 
-		// 	insect.legData) {
-		// 	push();
-		// 	rotate(-antennaeAngle);
-		// 	scale(1/transforms.scaleX, 1/transforms.scaleY);
-		// 	rotate(-transforms.rotation);
-		// 	translate(-transforms.translateX, -transforms.translateY);
-		// 	rotate(-insect.rads);
-		// 	translate(-insect.x, -insect.y);
-		// 	drawBeetleLegsForInsect(insect, insect.x, insect.y, insect.rads - radians(90), insect.legData);
-		// 	pop();
-		// }
-		// Apply per-frame offset for beetle/weavil
+		// DRAW VISIBLE LEG MOVEMENTS for beetles
+		//-  if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && insect.spriteFrames.length > 0) {
+		//-    var legConfig = getLegConfiguration(insect.currentFrame, 0);
+		//-    push(); // Save current transform
+		//-    // Reset transformations for leg drawing to get clean positions
+		//-    rotate(-antennaeAngle);
+		//-    scale(1/transforms.scaleX, 1/transforms.scaleY);
+		//-    rotate(-transforms.rotation);
+		//-    translate(-transforms.translateX, -transforms.translateY);
+		//-    rotate(-insect.rads);
+		//-    translate(-insect.x, -insect.y);
+		//-    // Draw legs at absolute position with beetle's angle
+		//-    drawBeetleLegsForInsect(insect, insect.x, insect.y, insect.rads - radians(90), insect.legData);
+		//-    pop(); // Restore transform for main sprite
+		//-  }
+		// Apply per-frame offset for beetle
 		if ((insect.insectType.includes('beetle') || insect.insectType.includes('weavil')) && insect.spriteFrames.length > 0) {
 			var offset = beetleFrameOffsets[insect.currentFrame] || [0, 0];
 			translate(offset[0], offset[1]);

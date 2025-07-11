@@ -64,7 +64,7 @@ script(type='text/javascript').
   spriteTint = getRandomTintColor();
 
   // Advanced realistic movement variables
-  var insectType = 'yellow_bee';
+  var insectType = 'beetle';
   var spriteSheet = null;
   var spriteFrames = [];
   var currentFrame = 0;
@@ -1102,7 +1102,9 @@ script(type='text/javascript').
     y = targetY;
     
     socket = io.connect();
-    socket.on('connect', () => socket.emit('client'))
+    socket.on('connect', function () {
+      socket.emit('client');
+    });
     socket.on('image', function(d) {
       insectType = determineInsectType(d.image);
       console.log('Detected insect type:', insectType);
@@ -1381,20 +1383,20 @@ script(type='text/javascript').
       rotate(antennaeAngle * 0.3);
 
       // DRAW VISIBLE LEG MOVEMENTS for beetles
-      //-  if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
-      //-    var legConfig = getLegConfiguration(currentFrame, 0);
-      //-    push(); // Save current transform
-      //-    // Reset transformations for leg drawing to get clean positions
-      //-    rotate(-antennaeAngle * 0.3);
-      //-    scale(1/transforms.scaleX, 1/transforms.scaleY);
-      //-    rotate(-transforms.rotation);
-      //-    translate(-transforms.translateX, -transforms.translateY);
-      //-    rotate(-(vara + radians(90)));
-      //-    translate(-varx, -vary);
-      //-    // Draw legs at absolute position with beetle's angle
-      //-    drawBeetleLegs(varx, vary, vara, legConfig);
-      //-    pop(); // Restore transform for main sprite
-      //-  }
+      // if ((insectType.includes('beetle') || insectType.includes('weavil')) && spriteFrames.length > 0) {
+      //   var legConfig = getLegConfiguration(currentFrame, 0);
+      //   push(); // Save current transform
+      //   // Reset transformations for leg drawing to get clean positions
+      //   rotate(-antennaeAngle * 0.3);
+      //   scale(1/transforms.scaleX, 1/transforms.scaleY);
+      //   rotate(-transforms.rotation);
+      //   translate(-transforms.translateX, -transforms.translateY);
+      //   rotate(-(vara + radians(90)));
+      //   translate(-varx, -vary);
+      //   // Draw legs at absolute position with beetle's angle
+      //   drawBeetleLegs(varx, vary, vara, legConfig);
+      //   pop(); // Restore transform for main sprite
+      // }
 
       var screenVarX = varx - 45;
       var screenVarY = vary - 45;
