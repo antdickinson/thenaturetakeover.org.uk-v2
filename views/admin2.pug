@@ -256,14 +256,14 @@ script(type='text/javascript').
 		if (path.includes('purple') && path.includes('butterfly')) return 'purple_butterfly';
 		if (path.includes('yellow') && path.includes('butterfly')) return 'yellow_butterfly';
 		if (path.includes('pink') && path.includes('butterfly')) return 'pink_butterfly';
-		if (path.includes('weavil') || path.includes('weevil')) return 'weavil';
-		if (path.includes('beetle') || path.includes('golden') || path.includes('scarab')) return 'golden_beetle';
+		//- if (path.includes('weavil') || path.includes('weevil')) return 'weavil';
+		//- if (path.includes('beetle') || path.includes('golden') || path.includes('scarab')) return 'golden_beetle';
 		
 		// Fallbacks
 		if (path.includes('bee') || path.includes('bumble')) return 'yellow_bee';
 		if (path.includes('butterfly')) return 'red_butterfly';
-		if (path.includes('beetle') || path.includes('ant') || path.includes('spider') || 
-			path.includes('weavil') || path.includes('weevil')) return 'golden_beetle';
+		//- if (path.includes('beetle') || path.includes('ant') || path.includes('spider') || 
+			//- path.includes('weavil') || path.includes('weevil')) return 'golden_beetle';
 		
 		return 'yellow_bee';
 	}

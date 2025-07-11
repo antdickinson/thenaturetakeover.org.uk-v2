@@ -312,7 +312,7 @@ script(type='text/javascript').
       framesX: 7, // The number of frames horizontally in the sprite sheet
       framesY: 1, // The number of frames vertically in the sprite sheet
       totalFrames: 5, // The total number of frames in the sprite sheet
-      walkCycleLength: 1.5, // The duration of a full walk cycle
+      walkCycleLength: 5, // The duration of a full walk cycle
       legPhases: [0, 0.5, 0.25, 0.75, 0.125, 0.625], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 6, // The amplitude of the body's side-to-side rocking motion when walking
       stepHeight: 4, // The height of the leg lift during a step
@@ -336,7 +336,7 @@ script(type='text/javascript').
       framesX: 7, // The number of frames horizontally in the sprite sheet
       framesY: 1, // The number of frames vertically in the sprite sheet
       totalFrames: 5, // The total number of frames in the sprite sheet
-      walkCycleLength: 1.8, // The duration of a full walk cycle
+      walkCycleLength: 5, // The duration of a full walk cycle
       legPhases: [0, 0.6, 0.3, 0.9, 0.15, 0.75], // The timing phases for each of the 6 legs
       bodyRockAmplitude: 4, // The amplitude of the body's side-to-side rocking motion when walking
       stepHeight: 3, // The height of the leg lift during a step
@@ -455,13 +455,13 @@ script(type='text/javascript').
     if (path.includes('purple') && path.includes('butterfly')) return 'purple_butterfly';
     if (path.includes('yellow') && path.includes('butterfly')) return 'yellow_butterfly';
     if (path.includes('pink') && path.includes('butterfly')) return 'pink_butterfly';
-    if (path.includes('weavil') || path.includes('weevil')) return 'weavil';
-    if (path.includes('beetle') || path.includes('golden') || path.includes('scarab')) return 'golden_beetle';
+    //- if (path.includes('weavil') || path.includes('weevil')) return 'weavil';
+    //- if (path.includes('beetle') || path.includes('golden') || path.includes('scarab')) return 'golden_beetle';
     
     // General fallbacks
     if (path.includes('bee')) return 'yellow_bee';
     if (path.includes('butterfly')) return 'red_butterfly';
-    if (path.includes('beetle')) return 'golden_beetle';
+    //- if (path.includes('beetle')) return 'golden_beetle';
     
     return 'yellow_bee'; // Default
   }
