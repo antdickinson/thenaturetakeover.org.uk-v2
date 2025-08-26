@@ -69,7 +69,7 @@ script(type='text/javascript').
 		let ins = insects[d.id];
 		// Update position and state data - USE EXACT VALUES FROM CUSTOMER
 		ins.x = (d.x / windowWidth) * 3160 + 45;  //you swapped the width and screen res
-		ins.y = (d.y / windowWidth) * 3160 + 45;
+		ins.y = (d.y / windowHeight) * 1200 + 45;
 		ins.rads = d.rads;  // Use EXACT rotation from customer
 		ins.angle1 = d.rads;  // Sync angle1 with customer rotation
 		ins.insectType = d.insectType || ins.insectType;
