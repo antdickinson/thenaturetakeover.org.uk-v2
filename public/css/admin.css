@@ -15,8 +15,8 @@ body {
   - keep the background transparent so it doesnt cover up the animation
 */
 .container {
-  width: 3160px;  /*3840 */
-  height: 1200px;  /* 768 */
+  width: 1080px;  /*3840 or 3160 and 1200 now */. 
+  height: 1920px;  /* 768 */
   overflow: hidden;
   background: #FFFFFF;
   border: 2px solid yellow; 
