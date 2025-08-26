@@ -68,8 +68,8 @@ script(type='text/javascript').
 		
 		let ins = insects[d.id];
 		// Update position and state data - USE EXACT VALUES FROM CUSTOMER
-		ins.x = (d.x / 3160) * windowWidth + 45;
-		ins.y = (d.y / 1200) * windowHeight + 45;
+		ins.x = (d.x / windowWidth) * 3160 + 45;  //you swapped the width and screen res
+		ins.y = (d.y / windowWidth) * 3160 + 45;
 		ins.rads = d.rads;  // Use EXACT rotation from customer
 		ins.angle1 = d.rads;  // Sync angle1 with customer rotation
 		ins.insectType = d.insectType || ins.insectType;
@@ -1022,15 +1022,15 @@ script(type='text/javascript').
 		updateStatus('physics-status', 'Ready', '#00ff88');
 	}
 
-	function windowResized() {
-		resizeCanvas(windowWidth, windowHeight);
-		// Update all insect target positions for new screen size
-		for (let id in insects) {
-			let insect = insects[id];
-			insect.targetX = (insect.targetX / windowWidth) * windowWidth;
-			insect.targetY = (insect.targetY / windowHeight) * windowHeight;
-		}
-	}
+	//- function windowResized() {
+	//- 	resizeCanvas(windowWidth, windowHeight);
+	//- 	// Update all insect target positions for new screen size
+	//- 	for (let id in insects) {
+	//- 		let insect = insects[id];
+	//- 		insect.targetX = (insect.targetX / windowWidth) * windowWidth;
+	//- 		insect.targetY = (insect.targetY / windowHeight) * windowHeight;
+	//- 	}
+	//- }
 
 	function draw() {
 		let now = performance.now();
