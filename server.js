@@ -33,20 +33,20 @@ const clientRooms = new Map(); // Track which room each client is in
 app.use(express.static("public"));
 
 // Routes
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get("/customer", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "customer.html"));
 });
 
-app.get("/index2", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index2.html"));
+app.get("/customer2", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "customer2.html"));
 });
 
-app.get("/display", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "display.html"));
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.get("/display2", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "display2.html"));
+app.get("/admin2", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin2.html"));  // Ant CHANGED THESE BITS
 });
 
 // Socket.IO connection handling
