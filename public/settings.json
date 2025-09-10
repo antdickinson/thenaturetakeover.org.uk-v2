@@ -23,8 +23,8 @@
     "displayBackgroundColor": "#FFFFFF",
     "displayWidth": 1080,
     "displayHeight": 1920,
-    "displayWidth2": 5600,    //Ant added this for second screen
-    "displayHeight2": 1200
+    // "displayWidth2": 5600,    
+    // "displayHeight2": 1200
   },
 
   "drawing": {
