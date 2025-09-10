@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drawing Canvas Room 2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="js/p5.spritesheet.js"></script>
+    <link rel="stylesheet" href="styles/drawing.css" />
+  </head>
+  <body>
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+      <img src="assets/splashscreen/splash.png" alt="Loading..." />
+    </div>
+
+    <div id="canvasContainer"></div>
+
+    <!-- Set room identifier -->
+    <script>
+      window.ROOM_ID = "room2";
+    </script>
+
+    <script src="js/drawing.js"></script>
+
+    <!-- Splash screen script -->
+    <script>
+      // Wait for page to load, then start splash sequence
+      window.addEventListener("load", function () {
+        setTimeout(function () {
+          const splash = document.getElementById("splashScreen");
+          splash.classList.add("fade-out");
+
+          // Remove splash screen from DOM after fade completes
+          setTimeout(function () {
+            splash.classList.add("hidden");
+          }, 1000); // Match the CSS transition duration
+        }, 3000); // Show for 3 seconds
+      });
+    </script>
+  </body>
+</html>

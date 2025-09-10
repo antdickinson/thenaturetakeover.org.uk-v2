@@ -1,0 +1,52 @@
+{
+  "colors": [
+    "#0266f5",
+    "#01fcef",
+    "#01fe84",
+    "#f97400",
+    "#e703fa",
+    "#fc0205",
+    "#f9f603",
+    "#0266f5",
+    "#01fcef",
+    "#01fe84",
+    "#f97400",
+    "#e703fa",
+    "#fc0205",
+    "#f9f603"
+  ],
+
+  "canvas": {
+    "width": "windowWidth",
+    "height": "windowHeight",
+    "drawingBackgroundColor": "#000000",
+    "displayBackgroundColor": "#FFFFFF",
+    "displayWidth": 1920,
+    "displayHeight": 1080
+  },
+
+  "drawing": {
+    "strokeWeight": 3
+  },
+
+  "animal": {
+    "headSize": 100,
+    "opacity": 100,
+    "timeOut": 3000,
+    "easing": 0.05,
+    "noiseScale": 0.005,
+    "noiseStrength": 500
+  },
+
+  "ui": {
+    "showClientIds": false,
+    "clientIdLength": 8,
+    "clearStatusDelay": 2000
+  },
+
+  "server": {
+    "port": 3000,
+    "cursorInactiveTimeout": 20000,
+    "enableLogging": true
+  }
+}

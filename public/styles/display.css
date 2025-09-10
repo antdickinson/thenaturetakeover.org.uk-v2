@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  padding: 0px;
+  font-family: Arial, sans-serif;
+  background-color: #909090;
+}
+
+#canvasContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 0px;
+}
+
+.status {
+  position: absolute;
+  text-align: center;
+
+  padding: 10px;
+  background-color: #e8f5e8;
+  border-radius: 5px;
+  color: #2d5d2d;
+}
