@@ -26,7 +26,7 @@
       right: 20px;
       color: white;
       font-family: Arial;
-      background: rgba(1,1,1,0.7);
+      background: rgba(255, 255, 255, 0.7);
       padding: 15px;
       border-radius: 8px;
       z-index: 1000;
@@ -1011,7 +1011,7 @@
     canvas = createCanvas(windowWidth, windowHeight, [P2D]);
     canvas.parent('admin-canvas');
     canvas.style("display", "block");
-    background(1, 1, 1); // Pitch black background
+    background(255, 255, 255); // Pitch black background
     frameRate(60);
     console.log('Admin viewer ready - watching for insects...');
   }
@@ -1021,7 +1021,7 @@
   }
 
   function draw() {
-    background(0, 0, 0); // Pitch black background
+    background(255, 255, 255); // Pitch black background
     
     // Draw all connected insects
     for (let id in insects) {
