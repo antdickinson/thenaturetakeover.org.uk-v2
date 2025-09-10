@@ -1016,7 +1016,7 @@ script(type='text/javascript').
 	function setup() {
 		let c = createCanvas(windowWidth, windowHeight);
 		c.parent('admin-canvas');
-		background(0);
+		background(1,1,1);
 		frameRate(60);
 		console.log('🎮 Advanced Admin canvas setup complete');
 		updateStatus('physics-status', 'Ready', '#00ff88');
@@ -1039,7 +1039,7 @@ script(type='text/javascript').
 		lastFrameTime = now;
 		if (deltaTime > 100) deltaTime = 100;
 		timeScale = deltaTime / 16.67;
-		background(0);
+		background(1,1,1);
 		globalAnimationFrame++;
 		
 		// Update and draw each insect with FULL ANIMATION SYSTEM
