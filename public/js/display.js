@@ -34,7 +34,7 @@ function setup() {
 
   console.log(`Loaded ${spriteSheets.length} sprite sheets and animations`);
   // Create canvas using default settings (will be updated when clients send settings)
-  let canvas = createCanvas(settings.canvas.displayWidth, settings.canvas.displayHeight); //here
+  let canvas = createCanvas(500,1000) //(settings.canvas.displayWidth, settings.canvas.displayHeight); //here
   canvas.parent("canvasContainer");
 
   // Set background
