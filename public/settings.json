@@ -23,8 +23,8 @@
     "displayBackgroundColor": "#FFFFFF",
     "displayWidth": 1080,
     "displayHeight": 1920,
-    "displayWidth2": 1920,
-    "displayHeight2": 1080
+    // "displayWidth2": 1920,
+    // "displayHeight2": 1080
   },
 
   "drawing": {
