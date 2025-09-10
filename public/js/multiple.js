@@ -20,7 +20,7 @@ class Multiple {
     stroke(255,0,0 );
     fill(0,0,0);
     imageMode(CENTER);
-    background(0);
+    background(255,255,255);
     let targetX = this.targetX1;
     let targetY = this.targetY1;
     // var targetX = mouseX;
