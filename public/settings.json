@@ -20,7 +20,7 @@
     "width": "windowWidth",
     "height": "windowHeight",
     "drawingBackgroundColor": "#000000",
-    "displayBackgroundColor": "#FFFFFF",
+    "displayBackgroundColor": "#000000",
     "displayWidth": 1080,
     "displayHeight": 1920
   },
